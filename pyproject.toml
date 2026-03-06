@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "div_fem"
+version = "0.1.0"
+authors = [{ name="Fabio Santos", email="fabiotrab@gmail.com"}]
+description = "This a full FEM analysis program in Python developed by Fabio Santos."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.5.0",
+    "numpy>=1.21.0"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/FabioFelipeSantos/div_fem"
