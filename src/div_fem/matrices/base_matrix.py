@@ -1,8 +1,7 @@
+from __future__ import annotations
 import random
+import numpy as np
 from typing import Literal, Self
-
-from .operations import multiplication
-from .lu_decomposition import lu_decomposition
 
 
 class Matrix:
@@ -79,22 +78,6 @@ class Matrix:
 
         return data
 
-    @property
-    def L(self) -> Matrix:
-        l, _ = lu_decomposition(self._data)
-        return Matrix(elements=l)
-
-    @property
-    def U(self) -> Matrix:
-        _, u = lu_decomposition(self._data)
-        return Matrix(elements=u)
-
-    def __mul__(self, matrixB: Matrix | list[list[float]]) -> Matrix:
-        if isinstance(matrixB, Matrix):
-            matrixB = matrixB.get_list()
-
-        return Matrix(multiplication(self._data, matrixB))
-
     def __str__(self) -> str:
         begin = "[\n  "
         if self.type_of_print_specifier == "scientific":
@@ -117,3 +100,134 @@ class Matrix:
 
     def get_list(self) -> list[list[float]]:
         return self._data
+
+    def __add__(self, matrix: Matrix | list[list[float | int]]) -> Matrix:
+        if isinstance(matrix, Matrix):
+            matrix = matrix.get_list()
+
+        return Matrix((np.array(self._data) + np.array(matrix)).tolist())
+
+    def __sub__(self, matrix: Matrix | list[list[float | int]]) -> Matrix:
+        if isinstance(matrix, Matrix):
+            matrix = matrix.get_list()
+
+        return Matrix((np.array(self._data) - np.array(matrix)).tolist())
+
+    def __mul__(self, second: Matrix | list[list[float | int]] | int | float) -> Matrix:
+        if isinstance(second, (int, float)):
+            return Matrix((np.array(self._data) * second).tolist())
+
+        if isinstance(second, Matrix):
+            second = second.get_list()
+
+        return Matrix(np.matmul(np.array(self._data), np.array(second)).tolist())
+
+    def inv(self) -> Matrix:
+        return Matrix(np.linalg.inv(self._data).tolist())
+
+    def __getitem__(
+        self,
+        idx: tuple[int, int] | tuple[list[int], list[int]] | list[int],
+    ) -> Matrix | float:
+
+        if not isinstance(idx, tuple):
+            rows, columns = idx, idx
+
+            matrix: list[list[float]] = []
+
+            for r in rows:
+                row = []
+                for c in columns:
+                    row.append(self._data[r][c])
+                matrix.append(row)
+
+            return Matrix(matrix)
+        else:
+            a, b = idx
+
+            if isinstance(a, list):
+                if isinstance(b, list):
+                    matrix = []
+                    for r in a:
+                        rows = []
+                        for c in b:
+                            rows.append(self._data[r][c])
+                        matrix.append(rows)
+                    return Matrix(matrix)
+                else:
+                    raise ValueError(
+                        "This matrix's values can be accessible in the ways:\n\t      "
+                        + "A[2, 3] -> element on second row third column\n\t      "
+                        + "A[[1, 4, 5]] -> all elements from first row and column, fourth row and column, and fifth row and column\n\t      "
+                        + "A[[2, 3], [4, 5, 7]] -> all elements from second and third rows on fourth, fifth and seventh columns"
+                    )
+            else:
+                if isinstance(b, list):
+                    raise ValueError(
+                        "This matrix's values can be accessible in the ways:\n\t      "
+                        + "A[2, 3] -> element on second row third column\n\t      "
+                        + "A[[1, 4, 5]] -> all elements from first row and column, fourth row and column, and fifth row and column\n\t      "
+                        + "A[[2, 3], [4, 5, 7]] -> all elements from second and third rows on fourth, fifth and seventh columns"
+                    )
+                else:
+                    return self._data[a][b]
+
+    def __setitem__(
+        self,
+        idx: tuple[int, int] | tuple[list[int], list[int]] | list[int],
+        values: Matrix | float | list[float] | list[list[float]],
+    ) -> None:
+        if isinstance(values, Matrix):
+            values = values.get_list()
+
+        # Case 1: Single element assignment M[i, j] = val
+        if (
+            isinstance(idx, tuple)
+            and isinstance(idx[0], int)
+            and isinstance(idx[1], int)
+        ):
+            if not isinstance(values, (float, int)):
+                raise ValueError("Single element assignment requires a scalar value.")
+            self._data[idx[0]][idx[1]] = float(values)  # type: ignore
+            return
+
+        target_rows: list[int]
+        target_cols: list[int]
+
+        if isinstance(idx, list):
+            target_rows = idx
+            target_cols = idx
+        elif (
+            isinstance(idx, tuple)
+            and isinstance(idx[0], list)
+            and isinstance(idx[1], list)
+        ):
+            target_rows = idx[0]  # type: ignore
+            target_cols = idx[1]  # type: ignore
+        else:
+            raise ValueError(
+                "This matrix's values can be accessible in the ways:\n\t      "
+                + "A[2, 3] -> element on second row third column\n\t      "
+                + "A[[1, 4, 5]] -> all elements from first row and column, fourth row and column, and fifth row and column\n\t      "
+                + "A[[2, 3], [4, 5, 7]] -> all elements from second and third rows on fourth, fifth and seventh columns"
+            )
+
+        if not isinstance(values, list) or (values and not isinstance(values[0], list)):
+            raise ValueError(
+                "The value for a list of indexes must be a valid Matrix or list of lists with the same size of the indexes"
+            )
+
+        values_list: list[list[float]] = values  # type: ignore
+
+        if len(values_list) != len(target_rows):
+            raise ValueError(
+                f"Shape mismatch: expected {len(target_rows)} rows, got {len(values_list)}"
+            )
+
+        for i, r in enumerate(target_rows):
+            if len(values_list[i]) != len(target_cols):
+                raise ValueError(
+                    f"Shape mismatch in row {i}: expected {len(target_cols)} columns, got {len(values_list[i])}"
+                )
+            for j, c in enumerate(target_cols):
+                self._data[r][c] = values_list[i][j]
