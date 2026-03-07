@@ -62,6 +62,15 @@ class Matrix:
     def shape(self) -> tuple:
         return (self.rows, self.columns)
 
+    @property
+    def T(self) -> Matrix:
+        transpose_matrix = Matrix(rows=self.columns, columns=self.rows)
+
+        for i in range(self.rows):
+            for j in range(self.columns):
+                transpose_matrix[i, j] = self._data[j][i]
+        return transpose_matrix
+
     def get_list(self) -> list[list[float]]:
         return self._data
 
