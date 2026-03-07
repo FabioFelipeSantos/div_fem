@@ -1,7 +1,7 @@
 from __future__ import annotations
 import random
 import numpy as np
-from typing import Literal, Self
+from typing import Literal, Self, overload
 
 
 class Matrix:
@@ -58,6 +58,16 @@ class Matrix:
             else:
                 self._data = self._with_zeros(self.rows, self.columns)
 
+    @property
+    def shape(self) -> tuple:
+        return (self.rows, self.columns)
+
+    def get_list(self) -> list[list[float]]:
+        return self._data
+
+    def print(self) -> None:
+        print(self.__str__())
+
     def _with_zeros(self, rows: int, columns: int) -> list[list[float]]:
         return [[0 for _ in range(rows)] for _ in range(columns)]
 
@@ -78,8 +88,7 @@ class Matrix:
 
         return data
 
-    def __str__(self) -> str:
-        begin = "[\n  "
+    def _extracting_data_as_string(self) -> list[str]:
         if self.type_of_print_specifier == "scientific":
             rows_stringified = [
                 ", ".join([f"{value:1.6E}" for value in row]) for row in self._data
@@ -93,13 +102,25 @@ class Matrix:
                 ", ".join([f"{int(value):>4d}" for value in row]) for row in self._data
             ]
 
+        return rows_stringified
+
+    def __repr__(self) -> str:
+        begin = f"Matrix("
+        data_stringified = ", ".join(
+            ["[" + row + "]" for row in self._extracting_data_as_string()]
+        )
+        end = ")"
+        return begin + data_stringified + end
+
+    def __str__(self) -> str:
+        begin = "[\n  "
+
+        rows_stringified = self._extracting_data_as_string()
+
         data_stringified = ",\n  ".join(["[ " + row + " ]" for row in rows_stringified])
         end = "\n]"
 
         return begin + data_stringified + end
-
-    def get_list(self) -> list[list[float]]:
-        return self._data
 
     def __add__(self, matrix: Matrix | list[list[float | int]]) -> Matrix:
         if isinstance(matrix, Matrix):
@@ -124,6 +145,12 @@ class Matrix:
 
     def inv(self) -> Matrix:
         return Matrix(np.linalg.inv(self._data).tolist())
+
+    @overload
+    def __getitem__(self, idx: tuple[int, int]) -> float: ...
+
+    @overload
+    def __getitem__(self, idx: list[int] | tuple[list[int], list[int]]) -> Matrix: ...
 
     def __getitem__(
         self,
@@ -172,23 +199,30 @@ class Matrix:
                 else:
                     return self._data[a][b]
 
+    @overload
+    def __setitem__(self, idx: tuple[int, int], values: float | int) -> None: ...
+
+    @overload
+    def __setitem__(
+        self,
+        idx: list[int] | tuple[list[int], list[int]],
+        values: Matrix | list[list[float]],
+    ) -> None: ...
+
     def __setitem__(
         self,
         idx: tuple[int, int] | tuple[list[int], list[int]] | list[int],
-        values: Matrix | float | list[float] | list[list[float]],
+        values: Matrix | float | int | list[list[float]],
     ) -> None:
-        if isinstance(values, Matrix):
-            values = values.get_list()
-
         # Case 1: Single element assignment M[i, j] = val
         if (
             isinstance(idx, tuple)
             and isinstance(idx[0], int)
             and isinstance(idx[1], int)
         ):
-            if not isinstance(values, (float, int)):
+            if not isinstance(values, (int, float)):
                 raise ValueError("Single element assignment requires a scalar value.")
-            self._data[idx[0]][idx[1]] = float(values)  # type: ignore
+            self._data[idx[0]][idx[1]] = float(values)
             return
 
         target_rows: list[int]
@@ -211,6 +245,9 @@ class Matrix:
                 + "A[[1, 4, 5]] -> all elements from first row and column, fourth row and column, and fifth row and column\n\t      "
                 + "A[[2, 3], [4, 5, 7]] -> all elements from second and third rows on fourth, fifth and seventh columns"
             )
+
+        if isinstance(values, Matrix):
+            values = values.get_list()
 
         if not isinstance(values, list) or (values and not isinstance(values[0], list)):
             raise ValueError(
