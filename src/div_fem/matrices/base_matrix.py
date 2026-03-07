@@ -88,13 +88,13 @@ class Matrix:
         if not n:
             n = m
 
-        return Matrix([[1 for _ in range(m)] for _ in range(n)])
+        return Matrix([[1 for _ in range(n)] for _ in range(m)])
 
     def _with_zeros(self, rows: int, columns: int) -> list[list[float]]:
-        return [[0 for _ in range(rows)] for _ in range(columns)]
+        return [[0 for _ in range(columns)] for _ in range(rows)]
 
     def _with_random(self, rows: int, columns: int) -> list[list[float]]:
-        return [[random.randint(-50, 100) for _ in range(rows)] for _ in range(columns)]
+        return [[random.randint(-50, 100) for _ in range(columns)] for _ in range(rows)]
 
     def _with_diag_of_ones(self, rows: int) -> list[list[float]]:
         data = []
