@@ -26,3 +26,20 @@ class GlobalStiffnessMatrix(Matrix):
         self.total_degree_of_freedom = total_degree_of_freedom
 
         super().__init__(rows=self.total_degree_of_freedom)
+
+    def assembly(
+        self,
+        idx: list[int] | tuple[list[int], list[int]],
+        sub_matrix: Matrix | list[list[float]],
+    ) -> None:
+        if isinstance(idx, list):
+            rows, columns = idx, idx
+        else:
+            rows, columns = idx
+
+        if isinstance(sub_matrix, list):
+            sub_matrix = Matrix(sub_matrix)
+
+        for i, r in enumerate(rows):
+            for j, c in enumerate(columns):
+                self._data[r][c] += sub_matrix[i, j]
