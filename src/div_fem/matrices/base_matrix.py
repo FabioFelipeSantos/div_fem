@@ -77,6 +77,19 @@ class Matrix:
     def print(self) -> None:
         print(self.__str__())
 
+    @staticmethod
+    def zeros(m: int, n: int | None = None) -> Matrix:
+        if not n:
+            n = m
+        return Matrix(rows=m, columns=n)
+
+    @staticmethod
+    def ones(m: int, n: int | None = None) -> Matrix:
+        if not n:
+            n = m
+
+        return Matrix([[1 for _ in range(m)] for _ in range(n)])
+
     def _with_zeros(self, rows: int, columns: int) -> list[list[float]]:
         return [[0 for _ in range(rows)] for _ in range(columns)]
 
