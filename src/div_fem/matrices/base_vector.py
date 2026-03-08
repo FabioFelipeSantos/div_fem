@@ -1,20 +1,20 @@
 from __future__ import annotations
 import random
-from typing import Literal, overload
+from typing import Literal, overload, Any, cast
 
 import numpy as np
-
+from .main_types import _VectorDataType
 from .base_matrix import Matrix
 
 
 class Vector:
     rows: int
-    _data: list[float]
+    _data: _VectorDataType
     type_of_print_specifier: Literal["scientific", "decimal", "integer"] = "decimal"
 
     def __init__(
         self,
-        elements: list[float] | None = None,
+        elements: _VectorDataType | None = None,
         rows: int | None = None,
         *,
         random: bool = False,
@@ -61,23 +61,27 @@ class Vector:
             transpose_vector[0, i] = self._data[i]
         return transpose_vector
 
-    def get_list(self) -> list[float]:
+    @property
+    def norm(self) -> float:
+        return _calculating_norm(self._data)
+
+    def get_list(self) -> _VectorDataType:
         return self._data
 
     def print(self) -> None:
         print(self.__str__())
 
-    @staticmethod
-    def zeros(m: int) -> Vector:
-        return Vector(rows=m)
+    @overload
+    def dot(self, other: Vector) -> float: ...
 
-    @staticmethod
-    def ones(m: int) -> Vector:
-        return Vector([1 for _ in range(m)])
+    @overload
+    def dot(self, other: _VectorDataType) -> float: ...
 
-    @staticmethod
-    def unit_direction_vector(rows: int, unity_direction_vector_dim: int) -> Vector:
-        return Vector(_with_one_in_dimension_n(rows, unity_direction_vector_dim))
+    def dot(self, other: Vector | _VectorDataType) -> float:
+        if isinstance(other, list):
+            other = Vector(other)
+
+        return _calculating_dot(self, other)
 
     def _with_zeros(self, rows: int) -> list[float]:
         return [0 for _ in range(rows)]
@@ -110,17 +114,20 @@ class Vector:
 
         return begin + data_stringified + end
 
-    def __add__(self, vector: Vector | list[float | int]) -> Vector:
+    def __add__(self, vector: Vector | _VectorDataType) -> Vector:
         if isinstance(vector, Vector):
             vector = vector.get_list()
 
         return Vector((np.array(self._data) + np.array(vector)).tolist())
 
-    def __sub__(self, vector: Vector | list[float | int]) -> Vector:
+    def __sub__(self, vector: Vector | _VectorDataType) -> Vector:
         if isinstance(vector, Vector):
             vector = vector.get_list()
 
         return Vector((np.array(self._data) - np.array(vector)).tolist())
+
+    def __len__(self) -> int:
+        return self.rows
 
     @overload
     def __mul__(self, other: Matrix) -> Matrix: ...
@@ -171,32 +178,32 @@ class Vector:
             return self._data[idx]
 
     @overload
-    def __setitem__(self, idx: int, values: float) -> None: ...
+    def __setitem__(self, idx: int, values: float | int) -> None: ...
 
     @overload
     def __setitem__(
         self,
         idx: list[int],
-        values: Vector | list[float],
+        values: Vector | _VectorDataType,
     ) -> None: ...
 
     def __setitem__(
         self,
         idx: int | list[int],
-        values: Vector | float | list[float],
+        values: Vector | float | int | _VectorDataType,
     ) -> None:
         if isinstance(idx, int):
-            if not isinstance(values, float):
+            if not isinstance(values, (float, int)):
                 raise ValueError("Single element assignment requires a scalar value.")
-            self._data[idx] = values
+            cast(list[Any], self._data)[idx] = values
             return
 
         if isinstance(values, Vector):
             values = values.get_list()
 
-        if not isinstance(values, list) or (values and not isinstance(values[0], list)):
+        if not isinstance(values, list):
             raise ValueError(
-                "The value for a list of indexes must be a valid Matrix or list of lists with the same size of the indexes"
+                "The value for a list of indexes must be a valid Vector or list of scalars with the same size of the indexes"
             )
 
         if len(values) != len(idx):
@@ -205,11 +212,43 @@ class Vector:
             )
 
         for i, r in enumerate(idx):
-            self._data[r] = values[i]
+            cast(list[Any], self._data)[r] = values[i]
+
+    @staticmethod
+    def zeros(m: int) -> Vector:
+        return Vector(rows=m)
+
+    @staticmethod
+    def ones(m: int) -> Vector:
+        return Vector([1 for _ in range(m)])
+
+    @staticmethod
+    def unit_direction_vector(rows: int, unity_direction_vector_dim: int) -> Vector:
+        return Vector(_with_one_in_dimension_n(rows, unity_direction_vector_dim))
+
+    @staticmethod
+    def vector_norm(vector: Vector | _VectorDataType) -> float:
+        if isinstance(vector, Vector):
+            vector = vector.get_list()
+        return _calculating_norm(vector)
+
+    @staticmethod
+    def vecdot(
+        vectorA: Vector | _VectorDataType, vectorB: Vector | _VectorDataType
+    ) -> float:
+        if isinstance(vectorA, list):
+            vectorA = Vector(vectorA)
+
+        if isinstance(vectorB, list):
+            vectorB = Vector(vectorB)
+
+        return _calculating_dot(vectorA, vectorB)
 
 
-def _with_one_in_dimension_n(rows: int, unity_direction_vector_dim: int) -> list[float]:
-    data: list[float] = []
+def _with_one_in_dimension_n(
+    rows: int, unity_direction_vector_dim: int
+) -> _VectorDataType:
+    data: _VectorDataType = []
 
     for i in range(rows):
         if i == unity_direction_vector_dim:
@@ -218,3 +257,19 @@ def _with_one_in_dimension_n(rows: int, unity_direction_vector_dim: int) -> list
             data.append(0)
 
     return data
+
+
+def _calculating_norm(vector: _VectorDataType) -> float:
+    return np.sqrt(sum([x**2 for x in vector]))
+
+
+def _calculating_dot(vectorA: Vector, vectorB: Vector) -> float:
+    if vectorA.rows != vectorB.rows:
+        raise ValueError(
+            f"Shape mismatch error. For the dot product must vectors must be the same size. Rows vectorA: {vectorA.rows}, Rows vectorB: {vectorB.rows}."
+        )
+
+    sum: float = 0.0
+    for i in range(vectorA.rows):
+        sum += vectorA[i] * vectorB[i]
+    return sum
