@@ -1,11 +1,12 @@
 from __future__ import annotations
 import random
 import numpy as np
-from typing import Literal, Self, overload
+from typing import Literal, Self, overload, Any, cast
+from .main_types import _MatrixDataType
 
 
 class Matrix:
-    _data: list[list[float]]
+    _data: _MatrixDataType
 
     rows: int
     columns: int
@@ -13,7 +14,7 @@ class Matrix:
 
     def __init__(
         self,
-        elements: list[list[float]] | None = None,
+        elements: _MatrixDataType | None = None,
         rows: int | None = None,
         *,
         columns: int | None = None,
@@ -71,7 +72,7 @@ class Matrix:
                 transpose_matrix[i, j] = self._data[j][i]
         return transpose_matrix
 
-    def get_list(self) -> list[list[float]]:
+    def get_list(self) -> _MatrixDataType:
         return self._data
 
     def print(self) -> None:
@@ -144,19 +145,19 @@ class Matrix:
 
         return begin + data_stringified + end
 
-    def __add__(self, matrix: Matrix | list[list[float | int]]) -> Matrix:
+    def __add__(self, matrix: Matrix | _MatrixDataType) -> Matrix:
         if isinstance(matrix, Matrix):
             matrix = matrix.get_list()
 
         return Matrix((np.array(self._data) + np.array(matrix)).tolist())
 
-    def __sub__(self, matrix: Matrix | list[list[float | int]]) -> Matrix:
+    def __sub__(self, matrix: Matrix | _MatrixDataType) -> Matrix:
         if isinstance(matrix, Matrix):
             matrix = matrix.get_list()
 
         return Matrix((np.array(self._data) - np.array(matrix)).tolist())
 
-    def __mul__(self, second: Matrix | list[list[float | int]] | int | float) -> Matrix:
+    def __mul__(self, second: Matrix | _MatrixDataType | int | float) -> Matrix:
         if isinstance(second, (int, float)):
             return Matrix((np.array(self._data) * second).tolist())
 
@@ -228,13 +229,13 @@ class Matrix:
     def __setitem__(
         self,
         idx: list[int] | tuple[list[int], list[int]],
-        values: Matrix | list[list[float]],
+        values: Matrix | _MatrixDataType,
     ) -> None: ...
 
     def __setitem__(
         self,
         idx: tuple[int, int] | tuple[list[int], list[int]] | list[int],
-        values: Matrix | float | int | list[list[float]],
+        values: Matrix | float | int | _MatrixDataType,
     ) -> None:
         # Case 1: Single element assignment M[i, j] = val
         if (
@@ -244,7 +245,7 @@ class Matrix:
         ):
             if not isinstance(values, (int, float)):
                 raise ValueError("Single element assignment requires a scalar value.")
-            self._data[idx[0]][idx[1]] = float(values)
+            cast(list[list[Any]], self._data)[idx[0]][idx[1]] = float(values)
             return
 
         target_rows: list[int]
@@ -276,7 +277,7 @@ class Matrix:
                 "The value for a list of indexes must be a valid Matrix or list of lists with the same size of the indexes"
             )
 
-        values_list: list[list[float]] = values  # type: ignore
+        values_list: _MatrixDataType = values  # type: ignore
 
         if len(values_list) != len(target_rows):
             raise ValueError(
@@ -289,4 +290,4 @@ class Matrix:
                     f"Shape mismatch in row {i}: expected {len(target_cols)} columns, got {len(values_list[i])}"
                 )
             for j, c in enumerate(target_cols):
-                self._data[r][c] = values_list[i][j]
+                cast(list[list[Any]], self._data)[r][c] = values_list[i][j]
