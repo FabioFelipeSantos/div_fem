@@ -3,7 +3,7 @@ import random
 from typing import Literal, overload
 
 import numpy as np
-from .main_types import _VectorDataType
+from .main_types import _VectorDataType, _VectorInputType, _MatrixInputType
 from .base_matrix import Matrix
 
 
@@ -14,7 +14,7 @@ class Vector:
 
     def __init__(
         self,
-        elements: _VectorDataType | None = None,
+        elements: _VectorInputType | None = None,
         rows: int | None = None,
         *,
         random: bool = False,
@@ -75,10 +75,10 @@ class Vector:
     def dot(self, other: Vector) -> float: ...
 
     @overload
-    def dot(self, other: _VectorDataType) -> float: ...
+    def dot(self, other: _VectorInputType) -> float: ...
 
-    def dot(self, other: Vector | _VectorDataType) -> float:
-        if isinstance(other, list):
+    def dot(self, other: Vector | _VectorInputType) -> float:
+        if not isinstance(other, Vector):
             other = Vector(other)
 
         return _calculating_dot(self, other)
@@ -114,13 +114,13 @@ class Vector:
 
         return begin + data_stringified + end
 
-    def __add__(self, vector: Vector | _VectorDataType) -> Vector:
+    def __add__(self, vector: Vector | _VectorInputType) -> Vector:
         if isinstance(vector, Vector):
             vector = vector.get_list()
 
         return Vector((np.array(self._data) + np.array(vector)).tolist())
 
-    def __sub__(self, vector: Vector | _VectorDataType) -> Vector:
+    def __sub__(self, vector: Vector | _VectorInputType) -> Vector:
         if isinstance(vector, Vector):
             vector = vector.get_list()
 
@@ -133,16 +133,16 @@ class Vector:
     def __mul__(self, other: Matrix) -> Matrix: ...
 
     @overload
-    def __mul__(self, other: list[list[float]]) -> Matrix: ...
+    def __mul__(self, other: _MatrixInputType) -> Matrix: ...
 
     @overload
     def __mul__(self, other: float) -> Vector: ...
 
-    def __mul__(self, other: Matrix | list[list[float]] | float) -> Matrix | Vector:
+    def __mul__(self, other: Matrix | _MatrixInputType | float) -> Matrix | Vector:
         if isinstance(other, (float, int)):
             return Vector((np.array(self._data) * other).tolist())
 
-        if isinstance(other, list):
+        if not isinstance(other, Matrix):
             other = Matrix(other)
 
         if self.shape[1] != other.shape[0]:
@@ -184,13 +184,13 @@ class Vector:
     def __setitem__(
         self,
         idx: list[int],
-        values: Vector | _VectorDataType,
+        values: Vector | _VectorInputType,
     ) -> None: ...
 
     def __setitem__(
         self,
         idx: int | list[int],
-        values: Vector | float | int | _VectorDataType,
+        values: Vector | float | int | _VectorInputType,
     ) -> None:
         if isinstance(idx, int):
             if not isinstance(values, (float, int)):
@@ -227,19 +227,19 @@ class Vector:
         return Vector(_with_one_in_dimension_n(rows, unity_direction_vector_dim))
 
     @staticmethod
-    def vector_norm(vector: Vector | _VectorDataType) -> float:
+    def vector_norm(vector: Vector | _VectorInputType) -> float:
         if isinstance(vector, Vector):
             vector = vector.get_list()
         return _calculating_norm(vector)
 
     @staticmethod
     def vecdot(
-        vectorA: Vector | _VectorDataType, vectorB: Vector | _VectorDataType
+        vectorA: Vector | _VectorInputType, vectorB: Vector | _VectorInputType
     ) -> float:
-        if isinstance(vectorA, list):
+        if not isinstance(vectorA, Vector):
             vectorA = Vector(vectorA)
 
-        if isinstance(vectorB, list):
+        if not isinstance(vectorB, Vector):
             vectorB = Vector(vectorB)
 
         return _calculating_dot(vectorA, vectorB)
@@ -259,7 +259,7 @@ def _with_one_in_dimension_n(
     return data
 
 
-def _calculating_norm(vector: _VectorDataType) -> float:
+def _calculating_norm(vector: _VectorInputType) -> float:
     return np.sqrt(sum([x**2 for x in vector]))
 
 
