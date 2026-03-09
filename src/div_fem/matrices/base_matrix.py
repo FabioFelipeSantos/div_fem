@@ -2,7 +2,7 @@ from __future__ import annotations
 import random
 import numpy as np
 from typing import Literal, Self, overload
-from .main_types import _MatrixDataType
+from .main_types import _MatrixDataType, _MatrixInputType
 
 
 class Matrix:
@@ -14,7 +14,7 @@ class Matrix:
 
     def __init__(
         self,
-        elements: _MatrixDataType | None = None,
+        elements: _MatrixInputType | None = None,
         rows: int | None = None,
         *,
         columns: int | None = None,
@@ -145,19 +145,19 @@ class Matrix:
 
         return begin + data_stringified + end
 
-    def __add__(self, matrix: Matrix | _MatrixDataType) -> Matrix:
+    def __add__(self, matrix: Matrix | _MatrixInputType) -> Matrix:
         if isinstance(matrix, Matrix):
             matrix = matrix.get_list()
 
         return Matrix((np.array(self._data) + np.array(matrix)).tolist())
 
-    def __sub__(self, matrix: Matrix | _MatrixDataType) -> Matrix:
+    def __sub__(self, matrix: Matrix | _MatrixInputType) -> Matrix:
         if isinstance(matrix, Matrix):
             matrix = matrix.get_list()
 
         return Matrix((np.array(self._data) - np.array(matrix)).tolist())
 
-    def __mul__(self, second: Matrix | _MatrixDataType | int | float) -> Matrix:
+    def __mul__(self, second: Matrix | _MatrixInputType | int | float) -> Matrix:
         if isinstance(second, (int, float)):
             return Matrix((np.array(self._data) * second).tolist())
 
@@ -229,13 +229,13 @@ class Matrix:
     def __setitem__(
         self,
         idx: list[int] | tuple[list[int], list[int]],
-        values: Matrix | _MatrixDataType,
+        values: Matrix | _MatrixInputType,
     ) -> None: ...
 
     def __setitem__(
         self,
         idx: tuple[int, int] | tuple[list[int], list[int]] | list[int],
-        values: Matrix | float | int | _MatrixDataType,
+        values: Matrix | float | int | _MatrixInputType,
     ) -> None:
         # Case 1: Single element assignment M[i, j] = val
         if (
@@ -277,7 +277,7 @@ class Matrix:
                 "The value for a list of indexes must be a valid Matrix or list of lists with the same size of the indexes"
             )
 
-        values_list: _MatrixDataType = values  # type: ignore
+        values_list: _MatrixInputType = values  # type: ignore
 
         if len(values_list) != len(target_rows):
             raise ValueError(

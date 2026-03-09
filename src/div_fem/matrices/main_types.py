@@ -1,4 +1,7 @@
-from typing import Union
+from typing import Sequence
 
-_VectorDataType = list[Union[float, int]]
-_MatrixDataType = list[list[Union[float, int]]]
+_VectorDataType = list[float]
+_MatrixDataType = list[list[float]]
+
+_VectorInputType = Sequence[float]
+_MatrixInputType = Sequence[Sequence[float]]
