@@ -43,4 +43,4 @@ class GlobalStiffnessMatrix(Matrix):
 
         for i, r in enumerate(rows):
             for j, c in enumerate(columns):
-                self._data[r][c] += sub_matrix[i, j]
+                self[r, c] += sub_matrix[i, j]
