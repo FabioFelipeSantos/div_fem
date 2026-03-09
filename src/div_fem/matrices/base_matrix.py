@@ -72,6 +72,14 @@ class Matrix:
                 transpose_matrix[i, j] = self._data[j][i]
         return transpose_matrix
 
+    @property
+    def norm(self) -> float:
+        return np.sqrt(
+            sum(
+                [self[i, j] ** 2 for i in range(self.rows) for j in range(self.columns)]
+            )
+        )
+
     def get_list(self) -> _MatrixDataType:
         return self._data
 
@@ -118,7 +126,7 @@ class Matrix:
             ]
         elif self.type_of_print_specifier == "decimal":
             rows_stringified = [
-                ", ".join([f"{value:1.2f}" for value in row]) for row in self._data
+                ", ".join([f"{value:12.6f}" for value in row]) for row in self._data
             ]
         else:
             rows_stringified = [
