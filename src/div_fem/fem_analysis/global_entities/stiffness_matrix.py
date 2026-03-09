@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Self
 
 from div_fem.matrices.base_matrix import Matrix
+from div_fem.matrices.main_types import _MatrixInputType
 
 
 class GlobalStiffnessMatrix(Matrix):
@@ -30,14 +31,14 @@ class GlobalStiffnessMatrix(Matrix):
     def assembly(
         self,
         idx: list[int] | tuple[list[int], list[int]],
-        sub_matrix: Matrix | list[list[float]],
+        sub_matrix: Matrix | _MatrixInputType,
     ) -> None:
         if isinstance(idx, list):
             rows, columns = idx, idx
         else:
             rows, columns = idx
 
-        if isinstance(sub_matrix, list):
+        if not isinstance(sub_matrix, Matrix):
             sub_matrix = Matrix(sub_matrix)
 
         for i, r in enumerate(rows):
