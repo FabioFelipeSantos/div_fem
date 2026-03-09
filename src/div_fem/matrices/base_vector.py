@@ -1,6 +1,6 @@
 from __future__ import annotations
 import random
-from typing import Literal, overload, Any, cast
+from typing import Literal, overload
 
 import numpy as np
 from .main_types import _VectorDataType
@@ -35,7 +35,7 @@ class Vector:
 
         if elements:
             self.rows = len(elements)
-            self._data = elements
+            self._data = list(elements)
 
         if rows:
             self.rows = rows
@@ -195,7 +195,7 @@ class Vector:
         if isinstance(idx, int):
             if not isinstance(values, (float, int)):
                 raise ValueError("Single element assignment requires a scalar value.")
-            cast(list[Any], self._data)[idx] = values
+            self._data[idx] = values
             return
 
         if isinstance(values, Vector):
@@ -212,7 +212,7 @@ class Vector:
             )
 
         for i, r in enumerate(idx):
-            cast(list[Any], self._data)[r] = values[i]
+            self._data[r] = values[i]
 
     @staticmethod
     def zeros(m: int) -> Vector:

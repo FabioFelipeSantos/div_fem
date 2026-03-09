@@ -1,7 +1,7 @@
 from __future__ import annotations
 import random
 import numpy as np
-from typing import Literal, Self, overload, Any, cast
+from typing import Literal, Self, overload
 from .main_types import _MatrixDataType
 
 
@@ -41,7 +41,7 @@ class Matrix:
 
             self.rows = len(elements)
             self.columns = len(elements[0])
-            self._data = elements
+            self._data = [list(row) for row in elements]
 
         if rows:
             self.rows = rows
@@ -245,7 +245,7 @@ class Matrix:
         ):
             if not isinstance(values, (int, float)):
                 raise ValueError("Single element assignment requires a scalar value.")
-            cast(list[list[Any]], self._data)[idx[0]][idx[1]] = float(values)
+            self._data[idx[0]][idx[1]] = float(values)
             return
 
         target_rows: list[int]
@@ -290,4 +290,4 @@ class Matrix:
                     f"Shape mismatch in row {i}: expected {len(target_cols)} columns, got {len(values_list[i])}"
                 )
             for j, c in enumerate(target_cols):
-                cast(list[list[Any]], self._data)[r][c] = values_list[i][j]
+                self._data[r][c] = values_list[i][j]
