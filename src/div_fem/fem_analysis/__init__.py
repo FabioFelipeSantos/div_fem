@@ -1,3 +1,3 @@
-from .global_entities import GlobalStiffnessMatrix
+from .global_entities import GlobalStiffnessMatrix, GlobalForcesVector
 
-__all__ = ["GlobalStiffnessMatrix"]
+__all__ = ["GlobalStiffnessMatrix", "GlobalForcesVector"]
