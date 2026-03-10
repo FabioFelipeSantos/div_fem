@@ -4,6 +4,7 @@ from .fem_analysis import (
     GlobalForcesVector,
     LocalForcesVector,
     LocalStiffnessMatrix,
+    Point,
 )
 
 __version__ = "0.1.0"
@@ -15,4 +16,5 @@ __all__ = [
     "GlobalForcesVector",
     "LocalForcesVector",
     "LocalStiffnessMatrix",
+    "Point",
 ]
