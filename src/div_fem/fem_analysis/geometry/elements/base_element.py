@@ -1,5 +1,4 @@
-from numpy import isin
-from div_fem import Point, LocalStiffnessMatrix
+from div_fem import Point
 
 
 class BaseElement:
