@@ -8,7 +8,7 @@ def shape_functions_2D_bar(zeta: float) -> Matrix:
     return Matrix([[N1, N2]])
 
 
-def first_derivative_shape_functions_2D_bar(zeta) -> Matrix:
+def first_derivative_shape_functions_2D_bar(zeta: float) -> Matrix:
     dN1 = -1
     dN2 = 1
 
