@@ -1,10 +1,14 @@
 from __future__ import annotations
 import random
-from typing import Literal, overload
+from typing import Literal, Self, overload, TYPE_CHECKING
 
 import numpy as np
+
+from div_fem.fem_analysis.geometry.point import Point
 from .main_types import _VectorDataType, _VectorInputType, _MatrixInputType
-from .base_matrix import Matrix
+
+if TYPE_CHECKING:
+    from .base_matrix import Matrix
 
 
 class Vector:
@@ -34,8 +38,13 @@ class Vector:
             )
 
         if elements:
-            self.rows = len(elements)
-            self._data = list(elements)
+            if isinstance(elements, Point):
+                self.rows = elements.dimension
+                self._data = elements.get_list()
+            else:
+                self.rows = len(elements)
+                self._data = list(elements)
+            return
 
         if rows:
             self.rows = rows
@@ -48,6 +57,8 @@ class Vector:
                 )
             else:
                 self._data = self._with_zeros(self.rows)
+
+            return
 
     @property
     def shape(self) -> tuple:
@@ -119,6 +130,20 @@ class Vector:
             vector = vector.get_list()
 
         return Vector((np.array(self._data) + np.array(vector)).tolist())
+
+    def __iadd__(self, vector: Vector | _VectorInputType) -> Self:
+        if not isinstance(vector, Vector):
+            vector = Vector(vector)
+
+        if vector.rows != self.rows:
+            raise ValueError(
+                "To sum a vector in place, the second vector must have the same number of rows that the first."
+            )
+
+        for i in range(self.rows):
+            self[i] += vector[i]
+
+        return self
 
     def __sub__(self, vector: Vector | _VectorInputType) -> Vector:
         if isinstance(vector, Vector):
