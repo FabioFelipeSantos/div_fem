@@ -1,8 +1,9 @@
 from __future__ import annotations
 import random
 import numpy as np
-from typing import Literal, Self, overload
-from .main_types import _MatrixDataType, _MatrixInputType
+from typing import Literal, Sequence, overload, Self
+from .main_types import _MatrixDataType, _MatrixInputType, _VectorInputType
+from .base_vector import Vector
 
 
 class Matrix:
@@ -69,7 +70,7 @@ class Matrix:
 
         for i in range(self.rows):
             for j in range(self.columns):
-                transpose_matrix[i, j] = self._data[j][i]
+                transpose_matrix[j, i] = self._data[i][j]
         return transpose_matrix
 
     @property
@@ -159,20 +160,65 @@ class Matrix:
 
         return Matrix((np.array(self._data) + np.array(matrix)).tolist())
 
+    def __iadd__(self, matrix: Matrix | _MatrixInputType) -> Self:
+        if not isinstance(matrix, Matrix):
+            matrix = Matrix(matrix)
+
+        if matrix.rows != self.rows:
+            raise ValueError(
+                "To sum a matrix in place, the second matrix must have the same number of rows that the first."
+            )
+
+        if matrix.columns != self.columns:
+            raise ValueError(
+                "To sum a matrix in place, the second matrix must have the same number of columns that the first."
+            )
+
+        for i in range(self.rows):
+            for j in range(self.columns):
+                self[i, j] += matrix[i, j]
+
+        return self
+
     def __sub__(self, matrix: Matrix | _MatrixInputType) -> Matrix:
         if isinstance(matrix, Matrix):
             matrix = matrix.get_list()
 
         return Matrix((np.array(self._data) - np.array(matrix)).tolist())
 
-    def __mul__(self, second: Matrix | _MatrixInputType | int | float) -> Matrix:
+    @overload
+    def __mul__(self, second: Matrix | _MatrixInputType | int | float) -> Matrix: ...
+
+    @overload
+    def __mul__(self, second: Vector | _VectorInputType) -> Vector: ...
+
+    def __mul__(
+        self,
+        second: Matrix | _MatrixInputType | Vector | _VectorInputType | int | float,
+    ) -> Matrix | Vector:
         if isinstance(second, (int, float)):
             return Matrix((np.array(self._data) * second).tolist())
-
-        if isinstance(second, Matrix):
+        elif isinstance(second, Matrix):
             second = second.get_list()
+            return Matrix(np.matmul(np.array(self._data), np.array(second)).tolist())
+        elif isinstance(second, Vector):
+            second = second.get_list()
+            return Vector(np.matmul(np.array(self._data), np.array(second)).tolist())
+        else:
+            if not isinstance(second, Sequence):
+                second = second.get_list()
+                return Vector(
+                    np.matmul(np.array(self._data), np.array(second)).tolist()
+                )
 
-        return Matrix(np.matmul(np.array(self._data), np.array(second)).tolist())
+            if not isinstance(second[0], list):
+                return Vector(
+                    np.matmul(np.array(self._data), np.array(second)).tolist()
+                )
+            else:
+                return Matrix(
+                    np.matmul(np.array(self._data), np.array(second)).tolist()
+                )
 
     def inv(self) -> Matrix:
         return Matrix(np.linalg.inv(self._data).tolist())
