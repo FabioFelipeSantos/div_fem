@@ -1,4 +1,5 @@
-from div_fem.matrices import Matrix, Vector, _MatrixInputType, _VectorInputType
+from div_fem.matrices.base_matrix import Matrix, _MatrixInputType
+from div_fem.matrices.base_vector import Vector, _VectorInputType
 
 from .lu_decomposition import LU_decomposition
 from .back_substitution import back_substitution

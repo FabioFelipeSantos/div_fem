@@ -1,4 +1,5 @@
-from div_fem.matrices import Matrix, _MatrixInputType, Vector, _VectorInputType
+from div_fem.matrices.base_matrix import Matrix, _MatrixInputType
+from div_fem.matrices.base_vector import Vector, _VectorInputType
 
 
 def forward_elimination(

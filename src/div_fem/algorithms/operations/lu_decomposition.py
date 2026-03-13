@@ -1,4 +1,4 @@
-from div_fem.matrices import Matrix, _MatrixInputType
+from div_fem.matrices.base_matrix import Matrix, _MatrixInputType
 
 
 def LU_decomposition(matrix: Matrix | _MatrixInputType) -> tuple[Matrix, Matrix]:
