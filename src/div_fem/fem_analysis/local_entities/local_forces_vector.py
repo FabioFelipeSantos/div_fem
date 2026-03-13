@@ -1,4 +1,4 @@
-from div_fem import Vector
+from div_fem.matrices.base_vector import Vector
 
 
 class LocalForcesVector(Vector):

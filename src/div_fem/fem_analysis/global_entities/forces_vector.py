@@ -1,7 +1,6 @@
 from typing import Self
 
-from div_fem import Vector
-from div_fem.matrices import _VectorInputType
+from div_fem.matrices.base_vector import Vector, _VectorInputType
 
 
 class GlobalForcesVector(Vector):

@@ -1,4 +1,4 @@
-from div_fem import Point
+from div_fem.fem_analysis.geometry.point import Point
 
 
 class BaseElement:

@@ -1,4 +1,4 @@
-from div_fem import Matrix
+from div_fem.matrices.base_matrix import Matrix
 
 
 class LocalStiffnessMatrix(Matrix):
