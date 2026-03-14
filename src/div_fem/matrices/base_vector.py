@@ -104,7 +104,7 @@ class Vector:
         if self.type_of_print_specifier == "scientific":
             rows_stringified = [f"{value:1.6E}" for value in self._data]
         elif self.type_of_print_specifier == "decimal":
-            rows_stringified = [f"{value:1.2f}" for value in self._data]
+            rows_stringified = [f"{value:1.4f}" for value in self._data]
         else:
             rows_stringified = [f"{int(value):>4d}" for value in self._data]
 
