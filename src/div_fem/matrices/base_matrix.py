@@ -66,6 +66,7 @@ class Matrix:
 
     @property
     def T(self) -> Matrix:
+        """Transposition of a matrix"""
         transpose_matrix = Matrix(rows=self.columns, columns=self.rows)
 
         for i in range(self.rows):
