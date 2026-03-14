@@ -3,7 +3,7 @@ from typing import Literal, Protocol, Any, TypeVar
 from div_fem.matrices.base_matrix import Matrix
 from div_fem.matrices.base_vector import Vector
 
-QuadraturePoints = Literal[1, 2, 3, 4, 5]
+QuadraturePoints = Literal[1, 2, 3, 4, 5, 6]
 
 # WEIGHTS_ABSCISSAE: { n: ([weights, w_i], [abscissa, x_i])}
 WEIGHTS_ABSCISSAE: dict[QuadraturePoints, tuple[list[float], list[float]]] = {
@@ -43,6 +43,24 @@ WEIGHTS_ABSCISSAE: dict[QuadraturePoints, tuple[list[float], list[float]]] = {
             0.9061798459386640,
         ],
     ),
+    6: (
+        [
+            0.1713244923791704,
+            0.3607615730481386,
+            0.4679139345726910,
+            0.4679139345726910,
+            0.3607615730481386,
+            0.1713244923791704,
+        ],
+        [
+            -0.9324695142031521,
+            -0.6612093864662645,
+            -0.2386191860831969,
+            0.2386191860831969,
+            0.6612093864662645,
+            0.9324695142031521,
+        ],
+    ),
 }
 
 T = TypeVar("T", Matrix, Vector, covariant=True)
@@ -61,6 +79,9 @@ def gauss_quadrature(
     weights, x_values = WEIGHTS_ABSCISSAE[quadrature_points]
 
     integration_result = function(x_values[0], **kwargs) * weights[0]
+
+    if quadrature_points == 1:
+        return integration_result
 
     for w, x in zip(weights[1:], x_values[1:]):
         integration_result += function(x, **kwargs) * w
