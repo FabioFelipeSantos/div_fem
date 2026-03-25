@@ -88,6 +88,20 @@ class Matrix:
     def print(self) -> None:
         print(self.__str__())
 
+    def to_vector(self) -> Vector:
+        if self.columns != 1 and self.rows != 1:
+            raise ValueError(
+                f"A matrix {self.rows} x {self.columns} can't be turned into a vector."
+            )
+        else:
+            if self.rows == 1:
+                return Vector(self._data[0])
+            else:
+                new_vector = Vector(rows=self.rows)
+                for i in range(self.rows):
+                    new_vector[i] = self[i, 0]
+                return new_vector
+
     @staticmethod
     def zeros(m: int, n: int | None = None) -> Matrix:
         if not n:
@@ -234,7 +248,6 @@ class Matrix:
         self,
         idx: tuple[int, int] | tuple[list[int], list[int]] | list[int],
     ) -> Matrix | float:
-
         if not isinstance(idx, tuple):
             rows, columns = idx, idx
 
