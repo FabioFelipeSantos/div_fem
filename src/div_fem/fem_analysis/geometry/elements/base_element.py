@@ -1,14 +1,21 @@
+from div_fem.fem_analysis.geometry.elements.shape_functions_interface import (
+    ShapeFunctions,
+)
 from div_fem.fem_analysis.geometry.point import Point
 
 
 class BaseElement:
     _points: list[Point]
-
+    _number_of_points_for_interpolation: int
     _degrees_of_freedom: list[int] | list[list[int]]
-    _total_element_degree_of_freedom: int = 0
+    _total_element_degree_of_freedom: int
+    _shape_functions: ShapeFunctions
 
     def __init__(
-        self, points: list[Point], degrees_of_freedom: list[int] | list[list[int]]
+        self,
+        points: list[Point],
+        number_of_points_for_interpolation: int,
+        degrees_of_freedom: list[int] | list[list[int]],
     ) -> None:
         if len(points) < 2:
             raise ValueError("An element can only be created with 2 or more points.")
@@ -18,29 +25,8 @@ class BaseElement:
                 "The degrees_of_freedom for the element must have two or more degree of freedom numbers."
             )
 
-        if len(degrees_of_freedom) != len(points):
-            raise ValueError(
-                f"The degrees of freedom list must have the same number of entries as the number of points. Number of points: {len(points)}, number of degree of freedom entries: {len(degrees_of_freedom)} "
-            )
-
-        if isinstance(degrees_of_freedom[0], list):
-            expected_length = len(degrees_of_freedom[0])
-            for dof_item in degrees_of_freedom:
-                if not isinstance(dof_item, list):
-                    raise TypeError(
-                        "The degree of freedom list can't contain a mixture of ints and lists."
-                    )
-
-                if len(dof_item) != expected_length:
-                    raise ValueError(
-                        "All lists as degree of freedom of each point has to have the same number of degree of freedom."
-                    )
-
-                self._total_element_degree_of_freedom += len(dof_item)
-        else:
-            self._total_element_degree_of_freedom = len(degrees_of_freedom)
-
         self._points = points
+        self._number_of_points_for_interpolation = number_of_points_for_interpolation
         self._degrees_of_freedom = degrees_of_freedom
 
     @property
@@ -50,8 +36,12 @@ class BaseElement:
 
     @property
     def number_points(self) -> int:
-        """The number of points used to create this element."""
-        return len(self)
+        """The number of points used in interpolation functions this element."""
+        return self._number_of_points_for_interpolation
+
+    @property
+    def shape_functions(self) -> ShapeFunctions:
+        return self._shape_functions
 
     def __len__(self) -> int:
         return len(self._points)
