@@ -3,10 +3,10 @@ from typing import Literal, Protocol, Any, TypeVar
 from div_fem.matrices.base_matrix import Matrix
 from div_fem.matrices.base_vector import Vector
 
-QuadraturePoints = Literal[1, 2, 3, 4, 5, 6]
+QUADRATURE_POINTS = {1, 2, 3, 4, 5, 6}
 
 # WEIGHTS_ABSCISSAE: { n: ([weights, w_i], [abscissa, x_i])}
-WEIGHTS_ABSCISSAE: dict[QuadraturePoints, tuple[list[float], list[float]]] = {
+WEIGHTS_ABSCISSAE: dict[int, tuple[list[float], list[float]]] = {
     1: ([2], [0]),
     2: ([1, 1], [-0.5773502691896257, 0.5773502691896257]),
     3: (
@@ -73,9 +73,14 @@ class FunctionTypeWithOptionalKwargs(Protocol[T]):
 # Exact for polynomials up to degree of 2n - 1
 def gauss_quadrature(
     function: FunctionTypeWithOptionalKwargs[T],
-    quadrature_points: QuadraturePoints,
+    quadrature_points: int,
     **kwargs: Any,
 ) -> T:
+    if not quadrature_points in QUADRATURE_POINTS:
+        raise ValueError(
+            f"The Gauss Quadrature number of points must be one of: {", ".join([str(value) for value in QUADRATURE_POINTS])}"
+        )
+
     weights, x_values = WEIGHTS_ABSCISSAE[quadrature_points]
 
     integration_result = function(x_values[0], **kwargs) * weights[0]
