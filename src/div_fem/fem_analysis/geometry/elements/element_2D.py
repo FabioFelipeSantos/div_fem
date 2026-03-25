@@ -149,20 +149,10 @@ class Element2D(BaseElement):
         return (c, s)
 
     def _base_matrix_element(self) -> Matrix:
-        if self._type == "bar":
-            return Matrix(rows=2)
-        elif self._type == "beam":
-            return Matrix(rows=4)
-        else:
-            return Matrix(rows=6)
+        return Matrix(rows=self.element_degree_of_freedom)
 
     def _base_vector_element(self) -> Vector:
-        if self._type == "bar":
-            return Vector(rows=2)
-        elif self._type == "beam":
-            return Vector(rows=4)
-        else:
-            return Vector(rows=6)
+        return Vector(rows=self.element_degree_of_freedom)
 
     def _integration_function_for_stiffness_matrix(
         self, independent_value: float, **kwargs: float
