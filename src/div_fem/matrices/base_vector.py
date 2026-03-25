@@ -44,6 +44,8 @@ class Vector:
             else:
                 self.rows = len(elements)
                 self._data = list(elements)
+
+            self._enumeration = enumerate(self._data)
             return
 
         if rows:
@@ -75,6 +77,13 @@ class Vector:
     @property
     def norm(self) -> float:
         return _calculating_norm(self._data)
+
+    @property
+    def enumeration(self) -> enumerate[float]:
+        return enumerate(self._data)
+
+    def index(self, value: float) -> int:
+        return self._data.index(value)
 
     def get_list(self) -> _VectorDataType:
         return self._data
@@ -180,6 +189,9 @@ class Vector:
             for c in range(other.shape[1]):
                 matrix_multiplication[r, c] = self._data[r] * other[0, c]
         return matrix_multiplication
+
+    def __rmul__(self, other: float) -> Vector:
+        return Vector((np.array(self._data) * other).tolist())
 
     @overload
     def __getitem__(self, idx: int) -> float: ...
