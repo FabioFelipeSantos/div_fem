@@ -1,17 +1,27 @@
-from ast import Call
 import inspect
 from typing import Literal, Callable, TypedDict, cast, overload, NotRequired
 
+from div_fem.fem_analysis.geometry.elements.element_load_interface import (
+    ElementLoadInterface,
+)
+
 _ForceTypes = Literal["concentrated", "moment", "constant", "function"]
+_ForceAxis = Literal["x", "y", "moment"]
+_ForceValueType = float | Callable[[float], float] | None
+_ForcePoint = float | None
 
 
 class ForceValueDict(TypedDict):
-    x: NotRequired[float | Callable[[float], float] | None]
-    y: NotRequired[float | Callable[[float], float] | None]
-    moment: NotRequired[float | Callable[[float], float] | None]
+    x: NotRequired[_ForceValueType]
+    y: NotRequired[_ForceValueType]
+    moment: NotRequired[_ForceValueType]
 
 
-class Element2DLoads:
+class Element2DLoads(
+    ElementLoadInterface[
+        _ForceTypes, _ForceAxis, _ForceValueType, ForceValueDict, _ForcePoint
+    ]
+):
     """
     The Element2DLoads is a class to set any kind of force that act in an 2D element of type bar, beam or frame. The possible types of loads is concentrated (perpendicular, axial or moment) and distributed (linear or by a function). As the element is in 2D the points where the forces act must be provided in the support coordinates interval [0, 1], where 0 represents the left end of the element and 1 represents the right end of the element. So, if a load is applied at 0.5, this represent the middle of the element.
 
@@ -42,19 +52,19 @@ class Element2DLoads:
     """
 
     _type: _ForceTypes
-    _force_value_dict: ForceValueDict
-    _force_point: float | None = None
-    _force_init_point: float | None = None
-    _force_final_point: float | None = None
+    _force_value: ForceValueDict
+    _force_point: _ForcePoint = None
+    _force_init_point: _ForcePoint = None
+    _force_final_point: _ForcePoint = None
 
     @overload
     def __init__(
         self,
         type: Literal["concentrated", "moment"],
         *,
-        force_value_x: float | Callable[[float], float] | None = None,
-        force_value_y: float | Callable[[float], float] | None = None,
-        force_value_moment: float | Callable[[float], float] | None = None,
+        force_value_x: _ForceValueType = None,
+        force_value_y: _ForceValueType = None,
+        force_value_moment: _ForceValueType = None,
         force_point: float,
     ) -> None: ...
 
@@ -63,11 +73,11 @@ class Element2DLoads:
         self,
         type: Literal["constant"],
         *,
-        force_value_x: float | Callable[[float], float] | None = None,
-        force_value_y: float | Callable[[float], float] | None = None,
-        force_value_moment: float | Callable[[float], float] | None = None,
-        force_init_point: float | None = ...,
-        force_final_point: float | None = ...,
+        force_value_x: _ForceValueType = None,
+        force_value_y: _ForceValueType = None,
+        force_value_moment: _ForceValueType = None,
+        force_init_point: _ForcePoint = ...,
+        force_final_point: _ForcePoint = ...,
     ) -> None: ...
 
     @overload
@@ -78,20 +88,20 @@ class Element2DLoads:
         force_value_x: Callable[[float], float] | None = None,
         force_value_y: Callable[[float], float] | None = None,
         force_value_moment: Callable[[float], float] | None = None,
-        force_init_point: float | None = ...,
-        force_final_point: float | None = ...,
+        force_init_point: _ForcePoint = ...,
+        force_final_point: _ForcePoint = ...,
     ) -> None: ...
 
     def __init__(
         self,
         type: _ForceTypes,
-        force_point: float | None = None,
+        force_point: _ForcePoint = None,
         *,
-        force_value_x: float | Callable[[float], float] | None = None,
-        force_value_y: float | Callable[[float], float] | None = None,
-        force_value_moment: float | Callable[[float], float] | None = None,
-        force_init_point: float | None = None,
-        force_final_point: float | None = None,
+        force_value_x: _ForceValueType = None,
+        force_value_y: _ForceValueType = None,
+        force_value_moment: _ForceValueType = None,
+        force_init_point: _ForcePoint = None,
+        force_final_point: _ForcePoint = None,
     ) -> None:
         if not force_value_x and not force_value_y and not force_value_moment:
             raise ValueError(
@@ -100,7 +110,7 @@ class Element2DLoads:
 
         self._type = type
         self._force_point = force_point
-        self._force_value_dict = {
+        self._force_value = {
             "x": force_value_x,
             "y": force_value_y,
             "moment": force_value_moment,
@@ -130,70 +140,46 @@ class Element2DLoads:
         return self._type
 
     @property
-    def force_point(self) -> float | None:
+    def force_point(self) -> _ForcePoint:
         return self._force_point
 
     @property
-    def force_init_point(self) -> float | None:
+    def force_init_point(self) -> _ForcePoint:
         return self._force_init_point
 
     @property
-    def force_final_point(self) -> float | None:
+    def force_final_point(self) -> _ForcePoint:
         return self._force_final_point
 
     @overload
-    def force_value(self) -> tuple[
-        float | Callable[[float], float] | None,
-        float | Callable[[float], float] | None,
-        float | Callable[[float], float] | None,
-    ]: ...
+    def force_value(self) -> ForceValueDict: ...
 
     @overload
-    def force_value(
-        self, force_axis: Literal["x", "y", "moment"]
-    ) -> float | Callable[[float], float] | None: ...
+    def force_value(self, force_axis: _ForceAxis) -> _ForceValueType: ...
 
     @overload
-    def force_value(
-        self, force_axis: list[Literal["x", "y", "moment"]]
-    ) -> list[float | Callable[[float], float] | None]: ...
+    def force_value(self, force_axis: list[_ForceAxis]) -> list[_ForceValueType]: ...
 
     def force_value(
         self,
-        force_axis: (
-            Literal["x", "y", "moment"] | list[Literal["x", "y", "moment"]] | None
-        ) = None,
-    ) -> (
-        float
-        | Callable[[float], float]
-        | None
-        | list[float | Callable[[float], float] | None]
-        | tuple[
-            float | Callable[[float], float] | None,
-            float | Callable[[float], float] | None,
-            float | Callable[[float], float] | None,
-        ]
-    ):
+        force_axis: _ForceAxis | list[_ForceAxis] | None = None,
+    ) -> _ForceValueType | list[_ForceValueType] | ForceValueDict:
         if not force_axis:
-            return (
-                self._force_value_dict.get("x"),
-                self._force_value_dict.get("y"),
-                self._force_value_dict.get("moment"),
-            )
+            return self._force_value
 
         if force_axis:
             if not isinstance(force_axis, list):
                 if force_axis == "x":
-                    return self._force_value_dict.get("x")
+                    return self._force_value.get("x")
                 elif force_axis == "y":
-                    return self._force_value_dict.get("y")
+                    return self._force_value.get("y")
                 else:
-                    return self._force_value_dict.get("moment")
+                    return self._force_value.get("moment")
             else:
                 return [
                     cast(
                         float | Callable[[float], float] | None,
-                        self._force_value_dict.get(key),
+                        self._force_value.get(key),
                     )
                     for key in force_axis
                 ]
