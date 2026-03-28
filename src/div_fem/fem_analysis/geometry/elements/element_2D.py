@@ -1,15 +1,25 @@
-from typing import Literal, TypedDict, NotRequired, Callable
+from typing import TYPE_CHECKING, Literal, TypedDict, NotRequired, Callable
 
+from div_fem.fem_analysis.geometry.elements_interface import ElementInterface
 from div_fem.matrices.base_matrix import Matrix
 from div_fem.fem_analysis.geometry.point import Point
 from div_fem.matrices.base_vector import Vector
 from div_fem.fem_analysis.loads.element_2D_loads import Element2DLoads
 from div_fem.fem_analysis.shape_functions.shape_functions_2D_bar import (
     ShapeFunctions2D,
-    _TypeOf2DElement,
 )
 from div_fem.algorithms.integration.gauss_quadrature import gauss_quadrature
-from .base_element import BaseElement
+
+if TYPE_CHECKING:
+    from div_fem.fem_analysis.geometry.elements_container import Elements
+
+_ElementType = Literal["bar", "beam", "frame"]
+
+
+class GeometryProperties(TypedDict):
+    length: float
+    cosine_x: float
+    cosine_y: float
 
 
 class MaterialAndSectionGeometryProperties(TypedDict):
@@ -19,40 +29,91 @@ class MaterialAndSectionGeometryProperties(TypedDict):
     nu: NotRequired[float | None]
 
 
-class Element2D(BaseElement):
-    _type: _TypeOf2DElement
-    _cosine_angles: tuple[float, float]
-    _length: float
-    _material_and_section_properties: MaterialAndSectionGeometryProperties
-    _loads: list[Element2DLoads] | None
-
+class Element2D(
+    ElementInterface[
+        _ElementType,
+        GeometryProperties,
+        MaterialAndSectionGeometryProperties,
+        ShapeFunctions2D,
+        Element2DLoads,
+    ]
+):
     def __init__(
         self,
         points: list[Point],
-        number_of_points_of_interpolation: int,
-        degrees_of_freedom: list[list[int]],
         material_and_section_properties: MaterialAndSectionGeometryProperties,
-        type: _TypeOf2DElement = "bar",
+        type: _ElementType = "bar",
         loads: list[Element2DLoads] | None = None,
     ) -> None:
+        if len(points) < 2:
+            raise ValueError("An element can only be created with 2 or more points.")
+
+        # if len(degrees_of_freedom) < 2:
+        #     raise ValueError(
+        #         "The degrees_of_freedom for the element must have two or more degree of freedom numbers."
+        #     )
+
+        # self._total_element_degree_of_freedom = self._verifying_dof_number(
+        #     number_of_points_for_interpolation, degrees_of_freedom
+        # )
+
+        self._container: Elements | None = None
+        self._index: int | None = None
+
         self._type = type
-        self._total_element_degree_of_freedom = self._verifying_dof_number(
-            number_of_points_of_interpolation, degrees_of_freedom
-        )
-        super().__init__(points, number_of_points_of_interpolation, degrees_of_freedom)
-        self._length = self._calculating_length()
-        self._cosine_angles = self._calculating_cosine_angles()
+        self._points = points
+
+        length, c_x, c_y = self._calculating_cosine_angles()
+        self._geometry_properties = {
+            "length": length,
+            "cosine_x": c_x,
+            "cosine_y": c_y,
+        }
+
         if not material_and_section_properties.get("nu"):
             material_and_section_properties.update({"nu": None})
 
         self._material_and_section_properties = material_and_section_properties
         self._loads = loads
+
+    def set_elements_container(self, container: Elements) -> None:
+        self._container = container
+
         self._shape_functions = ShapeFunctions2D(
-            self.number_points,
-            self._total_element_degree_of_freedom,
-            self.length,
+            self.container.number_of_interpolation_points,
+            self.container.total_degree_of_freedom,
+            self._geometry_properties["length"],
             self.type,
         )
+
+    def set_element_index(self, index: int) -> None:
+        self._index = index
+
+    @property
+    def points(self) -> list[Point]:
+        return self._points
+
+    @property
+    def container(self) -> Elements:
+        if self._container is None:
+            raise RuntimeError(
+                "The element must be added to a elements container before proceed."
+            )
+
+        return self._container
+
+    @property
+    def index(self) -> int:
+        if self._index is None:
+            raise RuntimeError(
+                "The element must be added to a elements container before proceed."
+            )
+
+        return self._index
+
+    @property
+    def shape_functions(self) -> ShapeFunctions2D:
+        return self._shape_functions
 
     @property
     def T(self) -> Matrix:
@@ -61,38 +122,52 @@ class Element2D(BaseElement):
         """
         return Matrix(
             [
-                [self._cosine_angles[0], self._cosine_angles[1], 0, 0],
-                [0, 0, self._cosine_angles[0], self._cosine_angles[1]],
+                [
+                    self._geometry_properties["cosine_x"],
+                    self._geometry_properties["cosine_y"],
+                    0,
+                    0,
+                ],
+                [
+                    0,
+                    0,
+                    self._geometry_properties["cosine_x"],
+                    self._geometry_properties["cosine_y"],
+                ],
             ]
         )
 
     @property
     def local_stiffness_matrix(self) -> Matrix:
         if self.type == "bar":
-            return gauss_quadrature(
+            stiffness_matrix = gauss_quadrature(
                 self._integration_function_for_stiffness_matrix,
                 1,
                 E=self._material_and_section_properties["E"],
                 A=self._material_and_section_properties["A"],
-                L=self._length,
+                L=self._geometry_properties["length"],
             )
         elif self.type == "beam":
-            return gauss_quadrature(
+            number_of_points = 2 * (self.container.number_of_interpolation_points - 1)
+            stiffness_matrix = gauss_quadrature(
                 self._integration_function_for_stiffness_matrix,
-                self.number_points,
+                number_of_points,
                 E=self._material_and_section_properties["E"],
                 I=self._material_and_section_properties["I"],
-                L=self._length,
+                L=self._geometry_properties["length"],
             )
         else:
-            return gauss_quadrature(
+            number_of_points = 2 * (self.container.number_of_interpolation_points - 1)
+            stiffness_matrix = gauss_quadrature(
                 self._integration_function_for_stiffness_matrix,
-                self.number_points,
+                number_of_points,
                 E=self._material_and_section_properties["E"],
                 A=self._material_and_section_properties["A"],
                 I=self._material_and_section_properties["I"],
-                L=self._length,
+                L=self._geometry_properties["length"],
             )
+
+        return stiffness_matrix
 
     @property
     def local_forces_vector(self) -> Vector:
@@ -117,16 +192,16 @@ class Element2D(BaseElement):
                 if load.force_type == "constant":
                     equivalent_forces += gauss_quadrature(
                         self._integration_function_for_forces_vector,
-                        2,
+                        self.container.number_of_interpolation_points,
                         load=load,
-                        L=self._length,
+                        L=self._geometry_properties["length"],
                     )
                 else:
                     equivalent_forces += gauss_quadrature(
                         self._integration_function_for_forces_vector,
                         6,
                         load=load,
-                        L=self._length,
+                        L=self._geometry_properties["length"],
                     )
 
         return equivalent_forces
@@ -136,23 +211,24 @@ class Element2D(BaseElement):
         return self._type
 
     @property
-    def length(self) -> float:
-        return self._length
+    def geometry_properties(self) -> GeometryProperties:
+        return self._geometry_properties
 
     def _calculating_length(self) -> float:
         return (Vector(self._points[1]) - Vector(self._points[0])).norm
 
-    def _calculating_cosine_angles(self) -> tuple[float, float]:
-        c = (self._points[1][0] - self._points[0][0]) / self._length
-        s = (self._points[1][1] - self._points[0][1]) / self._length
+    def _calculating_cosine_angles(self) -> tuple[float, float, float]:
+        length = self._calculating_length()
+        c = (self._points[1][0] - self._points[0][0]) / length
+        s = (self._points[1][1] - self._points[0][1]) / length
 
-        return (c, s)
+        return (length, c, s)
 
     def _base_matrix_element(self) -> Matrix:
-        return Matrix(rows=self.element_degree_of_freedom)
+        return Matrix(rows=self.container.total_degree_of_freedom)
 
     def _base_vector_element(self) -> Vector:
-        return Vector(rows=self.element_degree_of_freedom)
+        return Vector(rows=self.container.total_degree_of_freedom)
 
     def _integration_function_for_stiffness_matrix(
         self, independent_value: float, **kwargs: float
@@ -200,18 +276,26 @@ class Element2D(BaseElement):
             return (B.T * B) * (E * I) * self.shape_functions.jacobian
 
         if self.type == "frame" and A and I:
-            bar_indices = [3 * i for i in range(self.number_points)]
+            bar_indices = [
+                3 * i for i in range(self.container.number_of_interpolation_points)
+            ]
             beam_indices = [
-                idx for i in range(self.number_points) for idx in [3 * i + 1, 3 * i + 2]
+                idx
+                for i in range(self.container.number_of_interpolation_points)
+                for idx in [3 * i + 1, 3 * i + 2]
             ]
 
             B_aux = self.shape_functions.derivative(
                 2, independent_value, is_for_stiffness_matrix=True
             )
+
             B_bar = B_aux[[0], bar_indices] * (1 / self.shape_functions.jacobian)
             B_beam = B_aux[[0], beam_indices] * (1 / self.shape_functions.jacobian) ** 2
 
-            frame_matrix = Matrix(rows=3 * self.number_points)
+            frame_matrix = Matrix(
+                rows=3 * self.container.number_of_interpolation_points
+            )
+
             frame_matrix[bar_indices] = (B_bar.T * B_bar) * (E * A)
             frame_matrix[beam_indices] = (B_beam.T * B_beam) * (E * I)
 
@@ -246,7 +330,7 @@ class Element2D(BaseElement):
                     "To concentrated moment in beams, provide a float value for the moment."
                 )
             else:
-                force_vector = Vector(rows=self.element_degree_of_freedom)
+                force_vector = Vector(rows=self.container.total_degree_of_freedom)
 
                 if force_y:
 
@@ -283,7 +367,7 @@ class Element2D(BaseElement):
                     "To concentrated moment in frames, provide a float value for the moment."
                 )
             else:
-                force_vector = Vector(rows=self.element_degree_of_freedom)
+                force_vector = Vector(rows=self.container.total_degree_of_freedom)
 
                 if force_x or force_y:
                     N = self.shape_functions.value(point).to_vector()
@@ -378,7 +462,7 @@ class Element2D(BaseElement):
                     "To apply loads on an bar element, provide a float or Callable[[float], float] to the force_value_y or force_value_moment atributes for the load."
                 )
 
-            force_value_vector = Vector(rows=self.element_degree_of_freedom)
+            force_value_vector = Vector(rows=self.container.total_degree_of_freedom)
 
             if load.force_type == "constant":
                 if force_y:
@@ -440,8 +524,15 @@ class Element2D(BaseElement):
                     "To apply loads on an frame element, provide a float or Callable[[float], float] to the force_value_x, force_value_y or force_value_moment atributes for the load."
                 )
 
-            force_value_vector = Vector(rows=self.element_degree_of_freedom)
-
+            force_value_vector = Vector(rows=self.container.total_degree_of_freedom)
+            bar_index = [
+                3 * i for i in range(self.container.number_of_interpolation_points)
+            ]
+            beam_indices = [
+                idx
+                for i in range(self.container.number_of_interpolation_points)
+                for idx in [3 * i + 1, 3 * i + 2]
+            ]
             if load.force_type == "constant":
                 if force_x:
                     if not isinstance(force_x, (float | int)):
@@ -449,8 +540,8 @@ class Element2D(BaseElement):
                             "Provide a valid float for constant load values for the x axis for elements of type frame."
                         )
 
-                    force_value_vector[[0, 3]] += (
-                        N[[0, 3]] * force_x * (L / 2) * (x_final - x_init)
+                    force_value_vector[bar_index] += (
+                        N[bar_index] * force_x * (L / 2) * (x_final - x_init)
                     )
 
                 if force_y:
@@ -459,8 +550,8 @@ class Element2D(BaseElement):
                             "Provide a valid float for constant load values for the y axis for elements of type frame."
                         )
 
-                    force_value_vector[[1, 2, 4, 5]] += (
-                        N[[1, 2, 4, 5]] * force_y * (L / 2) * (x_final - x_init)
+                    force_value_vector[beam_indices] += (
+                        N[beam_indices] * force_y * (L / 2) * (x_final - x_init)
                     )
 
                 if moment:
@@ -471,9 +562,9 @@ class Element2D(BaseElement):
 
                     dN = self.shape_functions.derivative(1, new_xi).to_vector()
 
-                    force_value_vector[[1, 2, 4, 5]] += (
+                    force_value_vector[beam_indices] += (
                         (1 / self.shape_functions.jacobian)
-                        * dN[[1, 2, 4, 5]]
+                        * dN[beam_indices]
                         * moment
                         * (L / 2)
                         * (x_final - x_init)
@@ -485,8 +576,8 @@ class Element2D(BaseElement):
                             "Provide a valid Callable[[float], float] for function distributed load values for the x axis for elements of type frame."
                         )
 
-                    force_value_vector[[0, 3]] += (
-                        N[[0, 3]]
+                    force_value_vector[bar_index] += (
+                        N[bar_index]
                         * force_x((new_xi + 1) / 2)
                         * (L / 2)
                         * (x_final - x_init)
@@ -498,8 +589,8 @@ class Element2D(BaseElement):
                             "Provide a valid Callable[[float], float] for function distributed load values for the y axis for elements of type frame."
                         )
 
-                    force_value_vector[[1, 2, 4, 5]] += (
-                        N[[1, 2, 4, 5]]
+                    force_value_vector[beam_indices] += (
+                        N[beam_indices]
                         * force_y((new_xi + 1) / 2)
                         * (L / 2)
                         * (x_final - x_init)
@@ -513,9 +604,9 @@ class Element2D(BaseElement):
 
                     dN = self.shape_functions.derivative(1, new_xi).to_vector()
 
-                    force_value_vector[[1, 2, 4, 5]] += (
+                    force_value_vector[beam_indices] += (
                         (1 / self.shape_functions.jacobian)
-                        * dN[[1, 2, 4, 5]]
+                        * dN[beam_indices]
                         * moment((new_xi + 1) / 2)
                         * (L / 2)
                         * (x_final - x_init)
