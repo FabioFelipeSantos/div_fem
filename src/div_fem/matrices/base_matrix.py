@@ -138,7 +138,7 @@ class Matrix:
     def _extracting_data_as_string(self) -> list[str]:
         if self.type_of_print_specifier == "scientific":
             rows_stringified = [
-                ", ".join([f"{value:1.6E}" for value in row]) for row in self._data
+                ", ".join([f"{value:>10.3E}" for value in row]) for row in self._data
             ]
         elif self.type_of_print_specifier == "decimal":
             rows_stringified = [
