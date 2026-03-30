@@ -12,26 +12,25 @@ from div_fem.fem_analysis.geometry.elements_interface import ElementInterface
 if TYPE_CHECKING:
     from div_fem.fem_analysis.geometry.point import Point
 
+_ContainerElement = ElementInterface[
+    str,
+    Mapping[str, Any],
+    Mapping[str, Any],
+    ShapeFunctions,
+    ElementLoadInterface[
+        str,
+        Any,
+        Union[Mapping[str, Any], float],
+        Union[float, "Point", None],
+    ],
+]
+
 
 class Elements:
     _initialized: bool = False
     _instance: Elements | None = None
 
-    _elements: list[
-        ElementInterface[
-            str,
-            Mapping[str, Any],
-            Mapping[str, Any],
-            ShapeFunctions,
-            ElementLoadInterface[
-                str,
-                str,
-                Any,
-                Union[Mapping[str, Any], float],
-                Union[float, Point, None],
-            ],
-        ]
-    ] = []
+    _elements: list[_ContainerElement] = []
 
     _degrees_of_freedom: list[list[int]] = []
 
@@ -92,22 +91,22 @@ class Elements:
         return self._degrees_of_freedom[element_index - 1]
 
     @overload
-    def __call__(self, elements_or_index: int) -> ElementInterface: ...
+    def __call__(self, elements_or_index: int) -> _ContainerElement: ...
 
     @overload
     def __call__(
-        self, elements_or_index: ElementInterface | list[ElementInterface]
+        self, elements_or_index: _ContainerElement | list[_ContainerElement]
     ) -> None: ...
 
     def __call__(
-        self, elements_or_index: int | ElementInterface | list[ElementInterface]
-    ) -> ElementInterface | None:
+        self, elements_or_index: int | _ContainerElement | list[_ContainerElement]
+    ) -> _ContainerElement | None:
         if isinstance(elements_or_index, int):
             return self._elements[elements_or_index - 1]
         else:
             self.add(elements_or_index)
 
-    def add(self, elements: ElementInterface | list[ElementInterface]) -> None:
+    def add(self, elements: _ContainerElement | list[_ContainerElement]) -> None:
         if isinstance(elements, list):
             for element in elements:
                 self._adding_one_element(element)
@@ -116,7 +115,7 @@ class Elements:
 
         return
 
-    def _adding_one_element(self, element: ElementInterface) -> None:
+    def _adding_one_element(self, element: _ContainerElement) -> None:
         element.set_elements_container(self)
         element.set_element_index(self._index_next_element)
         self._elements.append(element)
@@ -147,7 +146,7 @@ class Elements:
         data = [element_dof[n * i : n * (i + 1)] for i in range(n)]
         return str(data)
 
-    def _string_for_element_info(self, element: ElementInterface) -> str:
+    def _string_for_element_info(self, element: _ContainerElement) -> str:
         begin = f"Element[{element.index:>3d}]:(\n    "
         element_data: list[str] = []
 
@@ -171,7 +170,7 @@ class Elements:
         end = "\n)"
         return begin + middle + end
 
-    def __getitem__(self, element_index: int) -> ElementInterface:
+    def __getitem__(self, element_index: int) -> _ContainerElement:
         if element_index < 0:
             raise IndexError(
                 "There's not negative indexation for the Elements container."

@@ -14,13 +14,15 @@ from div_fem.matrices.base_vector import Vector
 if TYPE_CHECKING:
     from div_fem.fem_analysis.geometry.elements_container import Elements
 
-_GeometryProperties = TypeVar("_GeometryProperties", bound=Mapping[str, Any])
-_MaterialAndSectionProperties = TypeVar(
-    "_MaterialAndSectionProperties", bound=Mapping[str, Any]
+_GeometryProperties = TypeVar(
+    "_GeometryProperties", bound=Mapping[str, Any], covariant=True
 )
-_ElementType = TypeVar("_ElementType", bound=str)
-_ShapeFunctions = TypeVar("_ShapeFunctions", bound=ShapeFunctions)
-_ElementLoad = TypeVar("_ElementLoad", bound=ElementLoadInterface)
+_MaterialAndSectionProperties = TypeVar(
+    "_MaterialAndSectionProperties", bound=Mapping[str, Any], covariant=True
+)
+_ElementType = TypeVar("_ElementType", bound=str, covariant=True)
+_ShapeFunctions = TypeVar("_ShapeFunctions", bound=ShapeFunctions, covariant=True)
+_ElementLoad = TypeVar("_ElementLoad", bound=ElementLoadInterface, covariant=True)
 
 
 class ElementInterface(

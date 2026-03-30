@@ -18,9 +18,7 @@ class ForceValueDict(TypedDict):
 
 
 class Element2DLoads(
-    ElementLoadInterface[
-        _ForceTypes, _ForceAxis, _ForceValueType, ForceValueDict, _ForcePoint
-    ]
+    ElementLoadInterface[_ForceTypes, _ForceValueType, ForceValueDict, _ForcePoint]
 ):
     """
     The Element2DLoads is a class to set any kind of force that act in an 2D element of type bar, beam or frame. The possible types of loads is concentrated (perpendicular, axial or moment) and distributed (linear or by a function). As the element is in 2D the points where the forces act must be provided in the support coordinates interval [0, 1], where 0 represents the left end of the element and 1 represents the right end of the element. So, if a load is applied at 0.5, this represent the middle of the element.
@@ -155,14 +153,14 @@ class Element2DLoads(
     def force_value(self) -> ForceValueDict: ...
 
     @overload
-    def force_value(self, force_axis: _ForceAxis) -> _ForceValueType: ...
+    def force_value(self, force_axis: str) -> _ForceValueType: ...
 
     @overload
-    def force_value(self, force_axis: list[_ForceAxis]) -> list[_ForceValueType]: ...
+    def force_value(self, force_axis: list[str]) -> list[_ForceValueType]: ...
 
     def force_value(
         self,
-        force_axis: _ForceAxis | list[_ForceAxis] | None = None,
+        force_axis: str | list[str] | None = None,
     ) -> _ForceValueType | list[_ForceValueType] | ForceValueDict:
         if not force_axis:
             return self._force_value
