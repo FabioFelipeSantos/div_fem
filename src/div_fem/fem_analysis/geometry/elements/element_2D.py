@@ -48,15 +48,6 @@ class Element2D(
         if len(points) < 2:
             raise ValueError("An element can only be created with 2 or more points.")
 
-        # if len(degrees_of_freedom) < 2:
-        #     raise ValueError(
-        #         "The degrees_of_freedom for the element must have two or more degree of freedom numbers."
-        #     )
-
-        # self._total_element_degree_of_freedom = self._verifying_dof_number(
-        #     number_of_points_for_interpolation, degrees_of_freedom
-        # )
-
         self._container: Elements | None = None
         self._index: int | None = None
 
