@@ -8,10 +8,34 @@ from .main_geometry_types import _PointInputData, _PointData
 class Point:
     _coord: _PointData
     _dimension: int
+    _dof_numbers: list[int] | None
+    _point_index: int | None
 
     def __init__(self, coord: _PointInputData) -> None:
         self._coord = list(coord)
         self._dimension = len(coord)
+        self._dof_numbers = None
+        self._point_index = None
+
+    def set_dof_numbers(self, dof_numbers: list[int]) -> None:
+        self._dof_numbers = dof_numbers
+
+    def set_point_index(self, point_index: int) -> None:
+        self._point_index = point_index
+
+    @property
+    def point_index(self) -> int:
+        if not self._point_index:
+            raise ValueError("The point must be in the Points container.")
+
+        return self._point_index
+
+    @property
+    def dof_numbers(self) -> list[int]:
+        if not self._dof_numbers:
+            raise ValueError("The point must be present at some element in elements container.")
+
+        return self._dof_numbers
 
     @property
     def norm(self) -> float:
@@ -29,9 +53,7 @@ class Point:
 
     def __getitem__(self, idx: int) -> float:
         if idx > self._dimension - 1:
-            raise IndexError(
-                f"Received {idx} as index for a point with {self._dimension} coordinates."
-            )
+            raise IndexError(f"Received {idx} as index for a point with {self._dimension} coordinates.")
         return self._coord[idx]
 
     @overload
@@ -40,32 +62,22 @@ class Point:
     @overload
     def __setitem__(self, idx: int, values: float) -> None: ...
 
-    def __setitem__(
-        self, idx: list[int] | int, values: _PointInputData | float
-    ) -> None:
+    def __setitem__(self, idx: list[int] | int, values: _PointInputData | float) -> None:
         if isinstance(idx, list):
             if len(idx) > self._dimension:
-                raise ValueError(
-                    f"The indexes list has more values than the dimension {self._dimension} of the point."
-                )
+                raise ValueError(f"The indexes list has more values than the dimension {self._dimension} of the point.")
 
             if not isinstance(values, list):
-                raise ValueError(
-                    "To set more than one coordinate for the point, provide a list of values for each coordinate."
-                )
+                raise ValueError("To set more than one coordinate for the point, provide a list of values for each coordinate.")
 
             if len(values) > len(idx):
-                raise ValueError(
-                    "The provided values have more values than the list indexes."
-                )
+                raise ValueError("The provided values have more values than the list indexes.")
 
             for i in idx:
                 self._coord[i] = values[i]
         else:
             if idx > self._dimension:
-                raise IndexError(
-                    f"The provided index {idx} is greater than dimension {self._dimension} of the point."
-                )
+                raise IndexError(f"The provided index {idx} is greater than dimension {self._dimension} of the point.")
 
             if not isinstance(values, float):
                 raise ValueError("For just one coordinate provide one value for it.")
