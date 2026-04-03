@@ -146,6 +146,10 @@ class Elements:
         data = [element_dof[n * i : n * (i + 1)] for i in range(n)]
         return str(data)
 
+    def print(self) -> None:
+        print(str(self))
+        return
+
     def _string_for_element_info(self, element: _ContainerElement) -> str:
         begin = f"Element[{element.index:>3d}]:(\n    "
         element_data: list[str] = []
