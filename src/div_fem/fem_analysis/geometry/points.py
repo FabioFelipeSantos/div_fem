@@ -15,6 +15,7 @@ class Points:
     _instance: Points | None = None
 
     _points: list[Point] = []
+    _index_next_point: int = 1
 
     def __new__(cls) -> Self:
         if cls._instance:
@@ -66,11 +67,16 @@ class Points:
     def add(self, points: Point | list[Point]) -> None:
         if isinstance(points, list):
             for point in points:
-                self._points.append(point)
+                self._add_new_point(point)
         else:
-            self._points.append(points)
+            self._add_new_point(points)
 
         return
+
+    def _add_new_point(self, point: Point) -> None:
+        self._points.append(point)
+        point.set_point_index(self._index_next_point)
+        self._index_next_point += 1
 
     def __str__(self) -> str:
         if len(self._points) == 1:
