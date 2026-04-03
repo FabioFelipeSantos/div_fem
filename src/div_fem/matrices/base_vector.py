@@ -33,9 +33,7 @@ class Vector:
             raise ValueError("Choose creating a vector with your values or your shape.")
 
         if random and unity_direction_vector_dim:
-            raise ValueError(
-                "Choose one of the basic types of vector: random or unit direction vector."
-            )
+            raise ValueError("Choose one of the basic types of vector: random or unit direction vector.")
 
         if elements:
             if isinstance(elements, Point):
@@ -54,9 +52,7 @@ class Vector:
             if random:
                 self._data = self._with_random(self.rows)
             elif unity_direction_vector_dim:
-                self._data = _with_one_in_dimension_n(
-                    self.rows, unity_direction_vector_dim
-                )
+                self._data = _with_one_in_dimension_n(self.rows, unity_direction_vector_dim)
             else:
                 self._data = self._with_zeros(self.rows)
 
@@ -145,9 +141,7 @@ class Vector:
             vector = Vector(vector)
 
         if vector.rows != self.rows:
-            raise ValueError(
-                "To sum a vector in place, the second vector must have the same number of rows that the first."
-            )
+            raise ValueError("To sum a vector in place, the second vector must have the same number of rows that the first.")
 
         for i in range(self.rows):
             self[i] += vector[i]
@@ -180,9 +174,7 @@ class Vector:
             other = Matrix(other)
 
         if self.shape[1] != other.shape[0]:
-            raise ValueError(
-                f"Shape mismatch error for matrix. Hope to get {self.shape[1]}, received {other.shape[0]}."
-            )
+            raise ValueError(f"Shape mismatch error for matrix. Hope to get {self.shape[1]}, received {other.shape[0]}.")
 
         matrix_multiplication = Matrix(rows=self.shape[0], columns=other.shape[1])
         for r in range(self.shape[0]):
@@ -239,14 +231,10 @@ class Vector:
             values = values.get_list()
 
         if not isinstance(values, list):
-            raise ValueError(
-                "The value for a list of indexes must be a valid Vector or list of scalars with the same size of the indexes"
-            )
+            raise ValueError("The value for a list of indexes must be a valid Vector or list of scalars with the same size of the indexes")
 
         if len(values) != len(idx):
-            raise ValueError(
-                f"Shape mismatch: expected {len(idx)} rows, got {len(values)}"
-            )
+            raise ValueError(f"Shape mismatch: expected {len(idx)} rows, got {len(values)}")
 
         for i, r in enumerate(idx):
             self._data[r] = values[i]
@@ -270,9 +258,7 @@ class Vector:
         return _calculating_norm(vector)
 
     @staticmethod
-    def vecdot(
-        vectorA: Vector | _VectorInputType, vectorB: Vector | _VectorInputType
-    ) -> float:
+    def vecdot(vectorA: Vector | _VectorInputType, vectorB: Vector | _VectorInputType) -> float:
         if not isinstance(vectorA, Vector):
             vectorA = Vector(vectorA)
 
@@ -282,9 +268,7 @@ class Vector:
         return _calculating_dot(vectorA, vectorB)
 
 
-def _with_one_in_dimension_n(
-    rows: int, unity_direction_vector_dim: int
-) -> _VectorDataType:
+def _with_one_in_dimension_n(rows: int, unity_direction_vector_dim: int) -> _VectorDataType:
     data: _VectorDataType = []
 
     for i in range(rows):

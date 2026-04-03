@@ -36,9 +36,7 @@ class Matrix:
         if elements:
             number_of_columns = [len(row) for row in elements]
             if max(number_of_columns) != min(number_of_columns):
-                raise ValueError(
-                    "The number of elements must be valid. Some of your columns does have a different number of elements."
-                )
+                raise ValueError("The number of elements must be valid. Some of your columns does have a different number of elements.")
 
             self.rows = len(elements)
             self.columns = len(elements[0])
@@ -76,11 +74,7 @@ class Matrix:
 
     @property
     def norm(self) -> float:
-        return np.sqrt(
-            sum(
-                [self[i, j] ** 2 for i in range(self.rows) for j in range(self.columns)]
-            )
-        )
+        return np.sqrt(sum([self[i, j] ** 2 for i in range(self.rows) for j in range(self.columns)]))
 
     def get_list(self) -> _MatrixDataType:
         return self._data
@@ -90,9 +84,7 @@ class Matrix:
 
     def to_vector(self) -> Vector:
         if self.columns != 1 and self.rows != 1:
-            raise ValueError(
-                f"A matrix {self.rows} x {self.columns} can't be turned into a vector."
-            )
+            raise ValueError(f"A matrix {self.rows} x {self.columns} can't be turned into a vector.")
         else:
             if self.rows == 1:
                 return Vector(self._data[0])
@@ -137,25 +129,17 @@ class Matrix:
 
     def _extracting_data_as_string(self) -> list[str]:
         if self.type_of_print_specifier == "scientific":
-            rows_stringified = [
-                ", ".join([f"{value:>10.3E}" for value in row]) for row in self._data
-            ]
+            rows_stringified = [", ".join([f"{value:>10.3E}" for value in row]) for row in self._data]
         elif self.type_of_print_specifier == "decimal":
-            rows_stringified = [
-                ", ".join([f"{value:12.6f}" for value in row]) for row in self._data
-            ]
+            rows_stringified = [", ".join([f"{value:12.6f}" for value in row]) for row in self._data]
         else:
-            rows_stringified = [
-                ", ".join([f"{int(value):>4d}" for value in row]) for row in self._data
-            ]
+            rows_stringified = [", ".join([f"{int(value):>4d}" for value in row]) for row in self._data]
 
         return rows_stringified
 
     def __repr__(self) -> str:
         begin = f"Matrix("
-        data_stringified = ", ".join(
-            ["[" + row + "]" for row in self._extracting_data_as_string()]
-        )
+        data_stringified = ", ".join(["[" + row + "]" for row in self._extracting_data_as_string()])
         end = ")"
         return begin + data_stringified + end
 
@@ -180,14 +164,10 @@ class Matrix:
             matrix = Matrix(matrix)
 
         if matrix.rows != self.rows:
-            raise ValueError(
-                "To sum a matrix in place, the second matrix must have the same number of rows that the first."
-            )
+            raise ValueError("To sum a matrix in place, the second matrix must have the same number of rows that the first.")
 
         if matrix.columns != self.columns:
-            raise ValueError(
-                "To sum a matrix in place, the second matrix must have the same number of columns that the first."
-            )
+            raise ValueError("To sum a matrix in place, the second matrix must have the same number of columns that the first.")
 
         for i in range(self.rows):
             for j in range(self.columns):
@@ -222,18 +202,12 @@ class Matrix:
         else:
             if not isinstance(second, Sequence):
                 second = second.get_list()
-                return Vector(
-                    np.matmul(np.array(self._data), np.array(second)).tolist()
-                )
+                return Vector(np.matmul(np.array(self._data), np.array(second)).tolist())
 
             if not isinstance(second[0], list):
-                return Vector(
-                    np.matmul(np.array(self._data), np.array(second)).tolist()
-                )
+                return Vector(np.matmul(np.array(self._data), np.array(second)).tolist())
             else:
-                return Matrix(
-                    np.matmul(np.array(self._data), np.array(second)).tolist()
-                )
+                return Matrix(np.matmul(np.array(self._data), np.array(second)).tolist())
 
     def inv(self) -> Matrix:
         return Matrix(np.linalg.inv(self._data).tolist())
@@ -306,11 +280,7 @@ class Matrix:
         values: Matrix | float | int | _MatrixInputType,
     ) -> None:
         # Case 1: Single element assignment M[i, j] = val
-        if (
-            isinstance(idx, tuple)
-            and isinstance(idx[0], int)
-            and isinstance(idx[1], int)
-        ):
+        if isinstance(idx, tuple) and isinstance(idx[0], int) and isinstance(idx[1], int):
             if not isinstance(values, (int, float)):
                 raise ValueError("Single element assignment requires a scalar value.")
             self._data[idx[0]][idx[1]] = float(values)
@@ -322,11 +292,7 @@ class Matrix:
         if isinstance(idx, list):
             target_rows = idx
             target_cols = idx
-        elif (
-            isinstance(idx, tuple)
-            and isinstance(idx[0], list)
-            and isinstance(idx[1], list)
-        ):
+        elif isinstance(idx, tuple) and isinstance(idx[0], list) and isinstance(idx[1], list):
             target_rows = idx[0]  # type: ignore
             target_cols = idx[1]  # type: ignore
         else:
@@ -341,21 +307,15 @@ class Matrix:
             values = values.get_list()
 
         if not isinstance(values, list) or (values and not isinstance(values[0], list)):
-            raise ValueError(
-                "The value for a list of indexes must be a valid Matrix or list of lists with the same size of the indexes"
-            )
+            raise ValueError("The value for a list of indexes must be a valid Matrix or list of lists with the same size of the indexes")
 
         values_list: _MatrixInputType = values  # type: ignore
 
         if len(values_list) != len(target_rows):
-            raise ValueError(
-                f"Shape mismatch: expected {len(target_rows)} rows, got {len(values_list)}"
-            )
+            raise ValueError(f"Shape mismatch: expected {len(target_rows)} rows, got {len(values_list)}")
 
         for i, r in enumerate(target_rows):
             if len(values_list[i]) != len(target_cols):
-                raise ValueError(
-                    f"Shape mismatch in row {i}: expected {len(target_cols)} columns, got {len(values_list[i])}"
-                )
+                raise ValueError(f"Shape mismatch in row {i}: expected {len(target_cols)} columns, got {len(values_list[i])}")
             for j, c in enumerate(target_cols):
                 self._data[r][c] = values_list[i][j]
