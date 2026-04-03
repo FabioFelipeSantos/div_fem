@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, TypeVar, Generic, Mapping, Union, overload
 
-
 if TYPE_CHECKING:
     from div_fem.fem_analysis.geometry.point import Point
 

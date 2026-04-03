@@ -1,6 +1,5 @@
 from typing import TYPE_CHECKING, Literal, Mapping, NotRequired, TypedDict, overload
 
-
 if TYPE_CHECKING:
     from div_fem.fem_analysis.geometry.point import Point
 
@@ -42,7 +41,9 @@ class BoundaryConditions:
         self,
     ) -> _BoundaryCondition2DInfo: ...
 
-    def boundary_condition(self, axis: _BoundaryInfoKeys | None = None) -> None | float | _BoundaryCondition2DInfo:
+    def boundary_condition(
+        self, axis: _BoundaryInfoKeys | None = None
+    ) -> None | float | _BoundaryCondition2DInfo:
         if not axis:
             return {
                 "x": self._boundary_info.get("x"),
@@ -78,7 +79,9 @@ class BoundaryConditions:
     ) -> tuple[Literal[True], float] | tuple[Literal[False], None]:
         return self._prescribed_value(self._boundary_info.get("moment"))
 
-    def _prescribed_value(self, value: None | float) -> tuple[Literal[True], float] | tuple[Literal[False], None]:
+    def _prescribed_value(
+        self, value: None | float
+    ) -> tuple[Literal[True], float] | tuple[Literal[False], None]:
         if value is None:
             return False, None
         else:

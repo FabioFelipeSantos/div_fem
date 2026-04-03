@@ -66,7 +66,9 @@ class ShapeFunctions2D(ShapeFunctions):
     @overload
     def value(self, xi: float, index: list[int]) -> list[float]: ...
 
-    def value(self, xi: float, index: int | list[int] | None = None) -> Matrix | float | list[float]:
+    def value(
+        self, xi: float, index: int | list[int] | None = None
+    ) -> Matrix | float | list[float]:
         if index:
             self._raise_error_for_index_greater_than_total_dof(index)
 
@@ -80,7 +82,9 @@ class ShapeFunctions2D(ShapeFunctions):
                     nodal_number = index // 2
                     nodal_dof_zero_index = index % 2
 
-                    return self._Hermite_function(nodal_number, xi)[nodal_dof_zero_index]
+                    return self._Hermite_function(nodal_number, xi)[
+                        nodal_dof_zero_index
+                    ]
                 else:
                     values: list[float] = []
 
@@ -88,7 +92,11 @@ class ShapeFunctions2D(ShapeFunctions):
                         nodal_number = idx // 2
                         nodal_dof_zero_index = idx % 2
 
-                        values.append(self._Hermite_function(nodal_number, xi)[nodal_dof_zero_index])
+                        values.append(
+                            self._Hermite_function(nodal_number, xi)[
+                                nodal_dof_zero_index
+                            ]
+                        )
 
                     return values
             else:
@@ -99,7 +107,9 @@ class ShapeFunctions2D(ShapeFunctions):
                     if nodal_dof_zero_index == 0:
                         return self._Lagrangian_function(nodal_number, xi)
                     else:
-                        return self._Hermite_function(nodal_number, xi)[nodal_dof_zero_index - 1]
+                        return self._Hermite_function(nodal_number, xi)[
+                            nodal_dof_zero_index - 1
+                        ]
                 else:
                     values = []
 
@@ -110,12 +120,23 @@ class ShapeFunctions2D(ShapeFunctions):
                         if nodal_dof_zero_index == 0:
                             values.append(self._Lagrangian_function(nodal_number, xi))
                         else:
-                            values.append(self._Hermite_function(nodal_number, xi)[nodal_dof_zero_index - 1])
+                            values.append(
+                                self._Hermite_function(nodal_number, xi)[
+                                    nodal_dof_zero_index - 1
+                                ]
+                            )
 
                     return values
 
         if self._type == "bar":
-            return Matrix([[self._Lagrangian_function(i, xi) for i in range(self.number_of_points)]])
+            return Matrix(
+                [
+                    [
+                        self._Lagrangian_function(i, xi)
+                        for i in range(self.number_of_points)
+                    ]
+                ]
+            )
         elif self._type == "beam":
             return self._Hermite_values(xi)
         else:
@@ -170,7 +191,10 @@ class ShapeFunctions2D(ShapeFunctions):
                 if not isinstance(index, list):
                     return self._Lagrangian_derivative(diff_order, index, xi)
                 else:
-                    return [self._Lagrangian_derivative(diff_order, idx, xi) for idx in index]
+                    return [
+                        self._Lagrangian_derivative(diff_order, idx, xi)
+                        for idx in index
+                    ]
             elif self._type == "beam":
                 if not isinstance(index, list):
                     return self._Hermite_derivative(diff_order, index, xi)
@@ -181,7 +205,11 @@ class ShapeFunctions2D(ShapeFunctions):
                         nodal_number = idx // 2
                         nodal_dof_zero_index = idx % 2
 
-                        values.append(self._Hermite_derivative(diff_order, nodal_number, xi)[nodal_dof_zero_index])
+                        values.append(
+                            self._Hermite_derivative(diff_order, nodal_number, xi)[
+                                nodal_dof_zero_index
+                            ]
+                        )
 
                     return values
             else:
@@ -191,12 +219,18 @@ class ShapeFunctions2D(ShapeFunctions):
 
                     if nodal_dof_zero_index == 0:
                         return self._Lagrangian_derivative(
-                            (diff_order if not is_for_stiffness_matrix else diff_order - 1),
+                            (
+                                diff_order
+                                if not is_for_stiffness_matrix
+                                else diff_order - 1
+                            ),
                             nodal_number,
                             xi,
                         )
                     else:
-                        return self._Hermite_derivative(diff_order, nodal_number, xi)[nodal_dof_zero_index - 1]
+                        return self._Hermite_derivative(diff_order, nodal_number, xi)[
+                            nodal_dof_zero_index - 1
+                        ]
                 else:
                     values = []
 
@@ -207,22 +241,39 @@ class ShapeFunctions2D(ShapeFunctions):
                         if nodal_dof_zero_index == 0:
                             values.append(
                                 self._Lagrangian_derivative(
-                                    (diff_order if not is_for_stiffness_matrix else diff_order - 1),
+                                    (
+                                        diff_order
+                                        if not is_for_stiffness_matrix
+                                        else diff_order - 1
+                                    ),
                                     nodal_number,
                                     xi,
                                 )
                             )
                         else:
-                            values.append(self._Hermite_derivative(diff_order, nodal_number, xi)[nodal_dof_zero_index - 1])
+                            values.append(
+                                self._Hermite_derivative(diff_order, nodal_number, xi)[
+                                    nodal_dof_zero_index - 1
+                                ]
+                            )
 
                     return values
         else:
             if self._type == "bar":
-                return Matrix([[self._Lagrangian_derivative(diff_order, i, xi) for i in range(self.number_of_points)]])
+                return Matrix(
+                    [
+                        [
+                            self._Lagrangian_derivative(diff_order, i, xi)
+                            for i in range(self.number_of_points)
+                        ]
+                    ]
+                )
             elif self._type == "beam":
                 return self._Hermite_derivative_values(diff_order, xi)
             else:
-                return self._frame_shape_derivative_values(diff_order, xi, is_for_stiffness_matrix=is_for_stiffness_matrix)
+                return self._frame_shape_derivative_values(
+                    diff_order, xi, is_for_stiffness_matrix=is_for_stiffness_matrix
+                )
 
     def _calculating_interpolation_points(self) -> Vector:
         h = 2 / (self._number_of_points - 1)
@@ -258,7 +309,9 @@ class ShapeFunctions2D(ShapeFunctions):
             else:
                 return 0.0
         else:
-            return self._nodal_poly(xi) * (self.barycentric_weights[i] / (xi - self.interpolation_points[i]))
+            return self._nodal_poly(xi) * (
+                self.barycentric_weights[i] / (xi - self.interpolation_points[i])
+            )
 
     def _logarithmic_sums(self, sum_order: int, i: int, xi) -> float:
         sum = 0
@@ -291,17 +344,23 @@ class ShapeFunctions2D(ShapeFunctions):
             index = self.interpolation_points.index(xi)
             x_j = xi
             x_i = self.interpolation_points[i]
-            barycentric_ratio = self.barycentric_weights[i] / self.barycentric_weights[index]
+            barycentric_ratio = (
+                self.barycentric_weights[i] / self.barycentric_weights[index]
+            )
 
             if diff_order == 1:
                 return barycentric_ratio * (1 / (x_j - x_i))
             elif diff_order == 2:
                 return (2 / (x_j - x_i)) * (
-                    barycentric_ratio * self._Lagrangian_derivative(diff_order - 1, index, xi) - self._Lagrangian_derivative(diff_order - 1, i, x_j)
+                    barycentric_ratio
+                    * self._Lagrangian_derivative(diff_order - 1, index, xi)
+                    - self._Lagrangian_derivative(diff_order - 1, i, x_j)
                 )
             else:
                 return (3 / (x_j - x_i)) * (
-                    barycentric_ratio * self._Lagrangian_derivative(diff_order - 1, index, xi) - self._Lagrangian_derivative(diff_order - 1, i, x_j)
+                    barycentric_ratio
+                    * self._Lagrangian_derivative(diff_order - 1, index, xi)
+                    - self._Lagrangian_derivative(diff_order - 1, i, x_j)
                 )
 
     def _nodal_inclination_calculation(self) -> Vector:
@@ -314,7 +373,9 @@ class ShapeFunctions2D(ShapeFunctions):
 
     def _Hermite_function(self, i: int, xi: float) -> list[float]:
         if not self.nodal_inclination:
-            raise ValueError("To calculate Hermite functions, the nodal inclination must be calculated before.")
+            raise ValueError(
+                "To calculate Hermite functions, the nodal inclination must be calculated before."
+            )
 
         w = xi - self.interpolation_points[i]
         u = 1 - 2 * self.nodal_inclination[i] * w
@@ -324,7 +385,9 @@ class ShapeFunctions2D(ShapeFunctions):
 
     def _Hermite_derivative(self, diff_order: int, i: int, xi: float) -> list[float]:
         if not self.nodal_inclination:
-            raise ValueError("To calculate Hermite functions, the nodal inclination must be calculated before.")
+            raise ValueError(
+                "To calculate Hermite functions, the nodal inclination must be calculated before."
+            )
 
         u_derivative = -2 * self.nodal_inclination[i]
         w = xi - self.interpolation_points[i]
@@ -332,15 +395,25 @@ class ShapeFunctions2D(ShapeFunctions):
 
         if diff_order == 1:
             v = self._Lagrangian_function(i, xi) ** 2
-            v_first_derivate = 2 * self._Lagrangian_function(i, xi) * self._Lagrangian_derivative(1, i, xi)
+            v_first_derivate = (
+                2
+                * self._Lagrangian_function(i, xi)
+                * self._Lagrangian_derivative(1, i, xi)
+            )
 
             return [
                 u_derivative * v + u * v_first_derivate,
                 (v + w * v_first_derivate) * self.jacobian,
             ]
         elif diff_order == 2:
-            v_first_derivate = 2 * self._Lagrangian_function(i, xi) * self._Lagrangian_derivative(1, i, xi)
-            v_second_derivative = 2 * self._Lagrangian_derivative(1, i, xi) ** 2 + 2 * self._Lagrangian_function(i, xi) * self._Lagrangian_derivative(
+            v_first_derivate = (
+                2
+                * self._Lagrangian_function(i, xi)
+                * self._Lagrangian_derivative(1, i, xi)
+            )
+            v_second_derivative = 2 * self._Lagrangian_derivative(
+                1, i, xi
+            ) ** 2 + 2 * self._Lagrangian_function(i, xi) * self._Lagrangian_derivative(
                 2, i, xi
             )
 
@@ -349,12 +422,18 @@ class ShapeFunctions2D(ShapeFunctions):
                 (2 * v_first_derivate + w * v_second_derivative) * self.jacobian,
             ]
         else:
-            v_second_derivative = 2 * self._Lagrangian_derivative(1, i, xi) ** 2 + 2 * self._Lagrangian_function(i, xi) * self._Lagrangian_derivative(
+            v_second_derivative = 2 * self._Lagrangian_derivative(
+                1, i, xi
+            ) ** 2 + 2 * self._Lagrangian_function(i, xi) * self._Lagrangian_derivative(
                 2, i, xi
             )
-            v_third_derivative = 6 * self._Lagrangian_derivative(1, i, xi) * self._Lagrangian_derivative(2, i, xi) + 2 * self._Lagrangian_function(
+            v_third_derivative = 6 * self._Lagrangian_derivative(
+                1, i, xi
+            ) * self._Lagrangian_derivative(2, i, xi) + 2 * self._Lagrangian_function(
                 i, xi
-            ) * self._Lagrangian_derivative(3, i, xi)
+            ) * self._Lagrangian_derivative(
+                3, i, xi
+            )
 
             return [
                 3 * u_derivative * v_second_derivative + u * v_third_derivative,
@@ -365,7 +444,9 @@ class ShapeFunctions2D(ShapeFunctions):
         Hermite_values = Matrix(rows=1, columns=self.number_of_points * 2)
 
         for i in range(self.number_of_points):
-            Hermite_values[0, 2 * i], Hermite_values[0, 2 * i + 1] = self._Hermite_function(i, xi)
+            Hermite_values[0, 2 * i], Hermite_values[0, 2 * i + 1] = (
+                self._Hermite_function(i, xi)
+            )
 
         return Hermite_values
 
@@ -385,12 +466,18 @@ class ShapeFunctions2D(ShapeFunctions):
 
         for i in range(self.number_of_points):
             frame_values[0, 3 * i] = self._Lagrangian_function(i, xi)
-            frame_values[0, 3 * i + 1], frame_values[0, 3 * i + 2] = self._Hermite_function(i, xi)
+            frame_values[0, 3 * i + 1], frame_values[0, 3 * i + 2] = (
+                self._Hermite_function(i, xi)
+            )
 
         return frame_values
 
-    def _frame_shape_derivative_values(self, diff_order: int, xi: float, is_for_stiffness_matrix: bool) -> Matrix:
-        frame_shape_derivative_values = Matrix(rows=1, columns=self.number_of_points * 3)
+    def _frame_shape_derivative_values(
+        self, diff_order: int, xi: float, is_for_stiffness_matrix: bool
+    ) -> Matrix:
+        frame_shape_derivative_values = Matrix(
+            rows=1, columns=self.number_of_points * 3
+        )
 
         for i in range(self.number_of_points):
             frame_shape_derivative_values[0, 3 * i] = self._Lagrangian_derivative(
@@ -403,7 +490,9 @@ class ShapeFunctions2D(ShapeFunctions):
 
         return frame_shape_derivative_values
 
-    def _raise_error_for_index_greater_than_total_dof(self, index: int | list[int]) -> None:
+    def _raise_error_for_index_greater_than_total_dof(
+        self, index: int | list[int]
+    ) -> None:
         if not isinstance(index, list):
             if index > self._total_degree_of_freedom - 1:
                 raise IndexError(
