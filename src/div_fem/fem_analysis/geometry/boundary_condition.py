@@ -15,7 +15,7 @@ _BoundaryInfoKeys = Literal["x", "y", "moment"]
 _BoundaryCondition2DInfo = Mapping[_BoundaryInfoKeys, float | None]
 
 
-class BoundaryConditions:
+class BoundaryCondition:
     _point: "Point"
     _boundary_info: _BoundaryCondition2DInfo
     _rotation: None | float
