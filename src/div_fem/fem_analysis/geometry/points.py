@@ -1,13 +1,25 @@
 from __future__ import annotations
-from typing import Self, NamedTuple, overload
+from typing import TYPE_CHECKING, Self, overload
+import numpy as np
 
-from div_fem.fem_analysis.geometry.point import Point
+from div_fem.utils.descriptors.descriptor_private_name import PrivateName
+
+if TYPE_CHECKING:
+    from div_fem.fem_analysis.geometry.point import Point
+    from div_fem.fem_analysis.structural_analysis.structural_analysis_interface import StructuralAnalysisInterface
 
 
-class PointInfo(NamedTuple):
-    nodal_index_number: int
-    point: Point
-    degrees_of_freedom: list[int]
+class StructuralAnalysis(PrivateName):
+
+    def __get__(self, obj: Points, objtype=None) -> StructuralAnalysisInterface | None:
+        return getattr(obj, self.private_name, None)
+
+    def __set__(self, obj: Points, value: StructuralAnalysisInterface) -> None:
+        setattr(obj, self.private_name, value)
+
+        if obj.number_of_points > 0:
+            for point in obj.points:
+                point.dof_numbers = obj._calculating_dof_numbers(index_point=point.index)
 
 
 class Points:
@@ -17,18 +29,23 @@ class Points:
     _points: list[Point] = []
     _index_next_point: int = 1
 
-    def __new__(cls) -> Self:
+    structural_analysis = StructuralAnalysis()
+
+    _dof_per_node: int
+
+    def __new__(cls, degree_of_freedom: int) -> Self:
         if cls._instance:
             raise ValueError("The Points object must be single per analysis.")
 
         cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self) -> None:
+    def __init__(self, degree_of_freedom: int) -> None:
         if self._initialized:
             return
 
         self._initialized = True
+        self._dof_per_node = degree_of_freedom
 
     @overload
     def __call__(self, elements: int) -> Point:
@@ -59,7 +76,11 @@ class Points:
 
     @property
     def number_of_points(self) -> int:
-        return len(self._points)
+        return self._index_next_point - 1
+
+    @property
+    def points(self) -> list[Point]:
+        return self._points
 
     def point(self, nodal_index: int) -> Point:
         return self._points[nodal_index - 1]
@@ -75,8 +96,22 @@ class Points:
 
     def _add_new_point(self, point: Point) -> None:
         self._points.append(point)
-        point.set_point_index(self._index_next_point)
+        point.index = self._index_next_point
+        point.dof_per_node = self._dof_per_node
+        point.dof_numbers = self._calculating_dof_numbers()
         self._index_next_point += 1
+
+    def _calculating_dof_numbers(self, index_point: int | None = None) -> list[int]:
+        indexes = np.arange(self._dof_per_node)
+
+        if index_point:
+            return (self._dof_per_node * (index_point - 1) + indexes).tolist()
+        else:
+            return (self._dof_per_node * (self._index_next_point - 1) + indexes).tolist()
+
+    def print(self) -> None:
+        print(str(self))
+        return
 
     def __str__(self) -> str:
         if len(self._points) == 1:
@@ -84,8 +119,10 @@ class Points:
 
         begin = "Points(\n    "
 
-        middle = ",\n    ".join(
-            [f"Point[{idx}]{str(point)}" for idx, point in enumerate(self._points)]
-        )
+        if self.structural_analysis:
+            middle = ",\n    ".join([f"Point[{point.index}]{str(point)}; DOF: {point.dof_numbers}" for point in self._points])
+        else:
+            middle = ",\n    ".join([f"Point[{point.index}]{str(point)}" for point in self._points])
+
         end = "\n)"
         return begin + middle + end
