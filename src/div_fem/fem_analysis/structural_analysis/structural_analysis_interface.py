@@ -2,7 +2,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Self
 from abc import ABC, abstractmethod
 
-from div_fem.utils.descriptors.descriptor_private_name import PrivateName, DescriptorBaseClass
+from div_fem.utils.descriptors.descriptor_private_name import (
+    PrivateName,
+    DescriptorBaseClass,
+)
 
 if TYPE_CHECKING:
     from div_fem.fem_analysis.geometry.points import Points
@@ -17,7 +20,9 @@ class StructuralPoints(PrivateName):
 
     def __set__(self, obj: StructuralAnalysisInterface, value: Points) -> None:
         if value.number_of_points < 2:
-            raise ValueError("Expected that number of points be greater than zero since any 2D element must have a starting and ending points")
+            raise ValueError(
+                "Expected that number of points be greater than zero since any 2D element must have a starting and ending points"
+            )
 
         setattr(obj, self.private_name, value)
         value.structural_analysis = obj
@@ -30,7 +35,9 @@ class StructuralElements(PrivateName):
 
     def __set__(self, obj: StructuralAnalysisInterface, value: Elements) -> None:
         if value.number_of_elements < 1:
-            raise ValueError(f"Expected one or more elements. Received {value.number_of_elements}")
+            raise ValueError(
+                f"Expected one or more elements. Received {value.number_of_elements}"
+            )
 
         setattr(obj, self.private_name, value)
         value.structural_analysis = obj
@@ -38,12 +45,18 @@ class StructuralElements(PrivateName):
 
 class StructuralBoundaryConditions(PrivateName):
 
-    def __get__(self, obj: StructuralAnalysisInterface, objtype=None) -> BoundariesConditions:
+    def __get__(
+        self, obj: StructuralAnalysisInterface, objtype=None
+    ) -> BoundariesConditions:
         return getattr(obj, self.private_name)
 
-    def __set__(self, obj: StructuralAnalysisInterface, value: BoundariesConditions) -> None:
+    def __set__(
+        self, obj: StructuralAnalysisInterface, value: BoundariesConditions
+    ) -> None:
         if value.count < 1:
-            raise ValueError(f"Expected one or more boundaries conditions. Received {value.count}")
+            raise ValueError(
+                f"Expected one or more boundaries conditions. Received {value.count}"
+            )
 
         setattr(obj, self.private_name, value)
 
@@ -58,7 +71,9 @@ class StructuralAnalysisInterface:
 
     def __new__(cls) -> Self:
         if cls._instance:
-            raise ValueError("The StructuralAnalysisInterface class is single to the analysis.")
+            raise ValueError(
+                "The StructuralAnalysisInterface class is single to the analysis."
+            )
 
         cls._instance = super().__new__(cls)
         return cls._instance

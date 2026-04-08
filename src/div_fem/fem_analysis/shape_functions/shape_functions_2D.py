@@ -17,7 +17,13 @@ class ShapeFunctions2D(ShapeFunctions):
     _type: _TypeOf2DElement
     _total_degree_of_freedom: int
 
-    def __init__(self, number_of_points: int, total_degree_of_freedom: int, length: float, type: _TypeOf2DElement = "bar") -> None:
+    def __init__(
+        self,
+        number_of_points: int,
+        total_degree_of_freedom: int,
+        length: float,
+        type: _TypeOf2DElement = "bar",
+    ) -> None:
         self._number_of_points = number_of_points
         self._total_degree_of_freedom = total_degree_of_freedom
         self._interpolation_points = self._calculating_interpolation_points()

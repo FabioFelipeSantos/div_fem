@@ -4,7 +4,10 @@ import numpy as np
 
 from .main_geometry_types import _PointInputData, _PointData
 
-from div_fem.utils.descriptors.descriptor_private_name import DescriptorBaseClass, PrivateName
+from div_fem.utils.descriptors.descriptor_private_name import (
+    DescriptorBaseClass,
+    PrivateName,
+)
 
 
 class PointIndex(PrivateName):
@@ -13,13 +16,17 @@ class PointIndex(PrivateName):
         value = getattr(obj, self.private_name, None)
 
         if not value:
-            raise AttributeError("The Point index can only be accessed after it being in Points class")
+            raise AttributeError(
+                "The Point index can only be accessed after it being in Points class"
+            )
 
         return value
 
     def __set__(self, obj: Point, value: int) -> None:
         if value < 0:
-            raise ValueError(f"A index for point must be greater than 0. Received {value}")
+            raise ValueError(
+                f"A index for point must be greater than 0. Received {value}"
+            )
         setattr(obj, self.private_name, value)
 
 

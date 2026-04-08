@@ -1,7 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Self
 
-
 if TYPE_CHECKING:
     from div_fem.fem_analysis.geometry.boundary_condition import BoundaryCondition
 
@@ -16,7 +15,9 @@ class BoundariesConditions:
 
     def __new__(cls) -> Self:
         if cls._instance:
-            raise ValueError("The Boundaries Conditions object must be single per analysis.")
+            raise ValueError(
+                "The Boundaries Conditions object must be single per analysis."
+            )
 
         cls._instance = super().__new__(cls)
         return cls._instance

@@ -15,15 +15,21 @@ from div_fem.utils.descriptors.descriptor_private_name import DescriptorBaseClas
 if TYPE_CHECKING:
     from div_fem.fem_analysis.geometry.elements_container import Elements
 
-_GeometryProperties = TypeVar("_GeometryProperties", bound=Mapping[str, Any], covariant=True)
-_MaterialAndSectionProperties = TypeVar("_MaterialAndSectionProperties", bound=Mapping[str, Any], covariant=True)
+_GeometryProperties = TypeVar(
+    "_GeometryProperties", bound=Mapping[str, Any], covariant=True
+)
+_MaterialAndSectionProperties = TypeVar(
+    "_MaterialAndSectionProperties", bound=Mapping[str, Any], covariant=True
+)
 _ElementType = TypeVar("_ElementType", bound=str, covariant=True)
 _ElementLoad = TypeVar("_ElementLoad", bound=ElementLoadInterface, covariant=True)
 
 
 def index_validation(value: int) -> None:
     if value < 0:
-        raise ValueError(f"A index for the element must be greater than 0. Received {value}")
+        raise ValueError(
+            f"A index for the element must be greater than 0. Received {value}"
+        )
 
     return
 
@@ -116,6 +122,8 @@ class ElementInterface(
             tuple(Point, int | list[int]): A tuple with the point and the degree of freedom of the point
         """
         if idx > self.number_interpolation_points - 1:
-            raise IndexError(f"The element doesn't have more than {self.number_interpolation_points} points. The index count starts at zero.")
+            raise IndexError(
+                f"The element doesn't have more than {self.number_interpolation_points} points. The index count starts at zero."
+            )
 
         return (self._extreme_points[idx], self._extreme_points[idx].dof_numbers)

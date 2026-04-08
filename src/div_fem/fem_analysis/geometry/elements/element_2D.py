@@ -54,9 +54,13 @@ class Element2D(
         self.type = type
         self._extreme_points = points
         self._coords_vector = Vector([*points[0], *points[1]])
-        self.number_interpolation_points = number_interpolation_points if number_interpolation_points else 2
+        self.number_interpolation_points = (
+            number_interpolation_points if number_interpolation_points else 2
+        )
         self._dof_per_node = points[0].dof_per_node
-        self.total_degree_of_freedom = (self.number_interpolation_points) * self._dof_per_node
+        self.total_degree_of_freedom = (
+            self.number_interpolation_points
+        ) * self._dof_per_node
 
         length, c_x, c_y = self._calculating_cosine_angles()
         self._geometry_properties = {
@@ -72,7 +76,10 @@ class Element2D(
         self._loads = loads
 
         self.shape_functions = ShapeFunctions2D(
-            self.number_interpolation_points, self.total_degree_of_freedom, self.geometry_properties["length"], cast(_ElementType, self.type)
+            self.number_interpolation_points,
+            self.total_degree_of_freedom,
+            self.geometry_properties["length"],
+            cast(_ElementType, self.type),
         )
 
         self._interpolation_points = self._calculating_points()
@@ -94,7 +101,9 @@ class Element2D(
         base_rotation_matrix = self._base_rotation_matrix()
 
         if self.type == "bar":
-            rotation_matrix = Matrix.zeros(self.total_degree_of_freedom, 2 * self.total_degree_of_freedom)
+            rotation_matrix = Matrix.zeros(
+                self.total_degree_of_freedom, 2 * self.total_degree_of_freedom
+            )
 
             for i in range(self.number_interpolation_points):
                 indexes = [j for j in range(2 * i, 2 * (i + 1))]
@@ -156,7 +165,9 @@ class Element2D(
                         "To concentrated forces a float value in [0, 1] must be provided as the point of the application of the force. x = 0 is the beginning of the element and x = 1 is the end of the element."
                     )
 
-                equivalent_forces += self._concentrated_equivalent_forces_vector(load, load.force_point)
+                equivalent_forces += self._concentrated_equivalent_forces_vector(
+                    load, load.force_point
+                )
             else:
                 if load.force_type == "constant":
                     equivalent_forces += gauss_quadrature(
@@ -182,13 +193,24 @@ class Element2D(
     def _calculating_points(self) -> list[Point]:
         h = 2 / (self.number_interpolation_points - 1)
 
-        interpolation_xi = [-1 + t * h for t in range(1, self.number_interpolation_points - 1)]
+        interpolation_xi = [
+            -1 + t * h for t in range(1, self.number_interpolation_points - 1)
+        ]
         interpolation_points: list[Point] = []
-        shape_functions = ShapeFunctions2D(2, 2 * self.extreme_points[0].dof_per_node, self.geometry_properties["length"])
+        shape_functions = ShapeFunctions2D(
+            2,
+            2 * self.extreme_points[0].dof_per_node,
+            self.geometry_properties["length"],
+        )
 
         for xi in interpolation_xi:
             matrix_N = shape_functions.value(xi)
-            shape_matrix = Matrix([[matrix_N[0, 0], 0, matrix_N[0, 1], 0], [0, matrix_N[0, 0], 0, matrix_N[0, 1]]])
+            shape_matrix = Matrix(
+                [
+                    [matrix_N[0, 0], 0, matrix_N[0, 1], 0],
+                    [0, matrix_N[0, 0], 0, matrix_N[0, 1]],
+                ]
+            )
             interpolation_points.append(Point([*shape_matrix * self._coords_vector]))
 
         try:
@@ -217,51 +239,87 @@ class Element2D(
 
     def _base_rotation_matrix(self) -> Matrix:
         if self.type == "bar":
-            return Matrix([[self.geometry_properties["cosine_x"], self.geometry_properties["cosine_y"]]])
+            return Matrix(
+                [
+                    [
+                        self.geometry_properties["cosine_x"],
+                        self.geometry_properties["cosine_y"],
+                    ]
+                ]
+            )
         else:
             return Matrix(
                 [
-                    [self.geometry_properties["cosine_x"], self.geometry_properties["cosine_y"], 0],
-                    [-self.geometry_properties["cosine_y"], self.geometry_properties["cosine_x"], 0],
+                    [
+                        self.geometry_properties["cosine_x"],
+                        self.geometry_properties["cosine_y"],
+                        0,
+                    ],
+                    [
+                        -self.geometry_properties["cosine_y"],
+                        self.geometry_properties["cosine_x"],
+                        0,
+                    ],
                     [0, 0, 1],
                 ]
             )
 
-    def _integration_function_for_stiffness_matrix(self, independent_value: float, **kwargs: float) -> Matrix:
+    def _integration_function_for_stiffness_matrix(
+        self, independent_value: float, **kwargs: float
+    ) -> Matrix:
         E = kwargs.pop("E", None)
         A = kwargs.pop("A", None)
         I = kwargs.pop("I", None)
         L = kwargs.pop("L", None)
 
         if not E:
-            raise ValueError("The material parameter E (Youngs Modulus) must be passed to integration function.")
+            raise ValueError(
+                "The material parameter E (Youngs Modulus) must be passed to integration function."
+            )
 
         if not L:
-            raise ValueError("The length of the bar must be passed to integration function.")
+            raise ValueError(
+                "The length of the bar must be passed to integration function."
+            )
 
         if self.type == "bar" or self.type == "frame":
             if not A:
-                raise ValueError("The area for the cross section must be provided in the integration function.")
+                raise ValueError(
+                    "The area for the cross section must be provided in the integration function."
+                )
 
         if self.type == "beam" or self.type == "frame":
             if not I:
-                raise ValueError("The moment of inertia for the cross section must be provided in the integration function.")
+                raise ValueError(
+                    "The moment of inertia for the cross section must be provided in the integration function."
+                )
 
         if self.type == "bar" and A:
-            B = self.shape_functions.derivative(1, independent_value) * (1 / self.shape_functions.jacobian)
+            B = self.shape_functions.derivative(1, independent_value) * (
+                1 / self.shape_functions.jacobian
+            )
 
             return (B.T * B) * (E * A) * self.shape_functions.jacobian
 
         if self.type == "beam" and I:
-            B = self.shape_functions.derivative(2, independent_value) * (1 / self.shape_functions.jacobian) ** 2
+            B = (
+                self.shape_functions.derivative(2, independent_value)
+                * (1 / self.shape_functions.jacobian) ** 2
+            )
 
             return (B.T * B) * (E * I) * self.shape_functions.jacobian
 
         if self.type == "frame" and A and I:
             bar_indices = [3 * i for i in range(self.number_interpolation_points)]
-            beam_indices = [idx for i in range(self.number_interpolation_points) for idx in [3 * i + 1, 3 * i + 2]]
+            beam_indices = [
+                idx
+                for i in range(self.number_interpolation_points)
+                for idx in [3 * i + 1, 3 * i + 2]
+            ]
 
-            B_aux = self.shape_functions.derivative(2, independent_value, is_for_stiffness_matrix=True)
+            B_aux = self.shape_functions.derivative(
+                2, independent_value, is_for_stiffness_matrix=True
+            )
 
             B_bar = B_aux[[0], bar_indices] * (1 / self.shape_functions.jacobian)
             B_beam = B_aux[[0], beam_indices] * (1 / self.shape_functions.jacobian) ** 2
@@ -273,49 +331,77 @@ class Element2D(
 
             return frame_matrix * self.shape_functions.jacobian
 
-        raise ValueError("Some problem in the definition of your functions to integrate.")
+        raise ValueError(
+            "Some problem in the definition of your functions to integrate."
+        )
 
-    def _concentrated_equivalent_forces_vector(self, load: Element2DLoads, point: float) -> Vector:
+    def _concentrated_equivalent_forces_vector(
+        self, load: Element2DLoads, point: float
+    ) -> Vector:
         point = 2 * point - 1
 
         if self.type == "bar":
             force_x = load.force_value("x")
             if not isinstance(force_x, (float | int)):
-                raise ValueError("The value for a concentrated force or moment must be a valid float number.")
+                raise ValueError(
+                    "The value for a concentrated force or moment must be a valid float number."
+                )
 
             return self.shape_functions.value(point).to_vector() * force_x
         elif self.type == "beam":
             force_y, moment = load.force_value(["y", "moment"])
 
             if not force_y and not moment:
-                raise ValueError("To concentrated loads in beams, provide a value for y axis or for moment.")
+                raise ValueError(
+                    "To concentrated loads in beams, provide a value for y axis or for moment."
+                )
             elif load.force_type == "moment" and not moment:
-                raise ValueError("To concentrated moment in beams, provide a float value for the moment.")
+                raise ValueError(
+                    "To concentrated moment in beams, provide a float value for the moment."
+                )
             else:
                 force_vector = Vector(rows=self.total_degree_of_freedom)
 
                 if force_y:
 
                     if not isinstance(force_y, (float | int)):
-                        raise ValueError("To concentrated y axis load provide a float value.")
-                    force_vector += self.shape_functions.value(point).to_vector() * force_y
+                        raise ValueError(
+                            "To concentrated y axis load provide a float value."
+                        )
+                    force_vector += (
+                        self.shape_functions.value(point).to_vector() * force_y
+                    )
 
                 if moment:
                     if not isinstance(moment, (float | int)):
-                        raise ValueError("To concentrated y axis load provide a float value.")
+                        raise ValueError(
+                            "To concentrated y axis load provide a float value."
+                        )
 
-                    force_vector += self.shape_functions.derivative(1, point).to_vector() * moment * (1 / self.shape_functions.jacobian)
+                    force_vector += (
+                        self.shape_functions.derivative(1, point).to_vector()
+                        * moment
+                        * (1 / self.shape_functions.jacobian)
+                    )
 
                 return force_vector
         else:
             force_x, force_y, moment = load.force_value(["x", "y", "moment"])
             bar_index = [3 * i for i in range(self.number_interpolation_points)]
-            beam_indices = [idx for i in range(self.number_interpolation_points) for idx in [3 * i + 1, 3 * i + 2]]
+            beam_indices = [
+                idx
+                for i in range(self.number_interpolation_points)
+                for idx in [3 * i + 1, 3 * i + 2]
+            ]
 
             if not force_x and not force_y and not moment:
-                raise ValueError("To concentrated loads in frames, provide a value for x or y axis or for moment.")
+                raise ValueError(
+                    "To concentrated loads in frames, provide a value for x or y axis or for moment."
+                )
             elif load.force_type == "moment" and not moment:
-                raise ValueError("To concentrated moment in frames, provide a float value for the moment.")
+                raise ValueError(
+                    "To concentrated moment in frames, provide a float value for the moment."
+                )
             else:
                 applied_force = Vector(rows=3)
 
@@ -343,15 +429,23 @@ class Element2D(
 
                 if applied_force[2] != 0:
                     dN = self.shape_functions.derivative(1, point).to_vector()
-                    force_vector[beam_indices] += dN[beam_indices] * applied_force[2] * (1 / self.shape_functions.jacobian)
+                    force_vector[beam_indices] += (
+                        dN[beam_indices]
+                        * applied_force[2]
+                        * (1 / self.shape_functions.jacobian)
+                    )
 
                 return force_vector
 
-    def _integration_function_for_forces_vector(self, independent_value: float, **kwargs: float | Element2DLoads) -> Vector:
+    def _integration_function_for_forces_vector(
+        self, independent_value: float, **kwargs: float | Element2DLoads
+    ) -> Vector:
         load = kwargs.pop("load", None)
 
         if not load:
-            raise ValueError("Some force must be provided to calculate the resulting vector of equivalent forces.")
+            raise ValueError(
+                "Some force must be provided to calculate the resulting vector of equivalent forces."
+            )
 
         if not isinstance(load, Element2DLoads):
             raise ValueError("The forces must be a valid Element2DLoads class.")
@@ -359,7 +453,9 @@ class Element2D(
         L = kwargs.pop("L", None)
 
         if not L:
-            raise ValueError("The length of the bar must be passed to integration function.")
+            raise ValueError(
+                "The length of the bar must be passed to integration function."
+            )
 
         if not isinstance(L, float):
             raise ValueError("The length of the element must be a float")
@@ -381,12 +477,16 @@ class Element2D(
 
             if load.force_type == "constant":
                 if not isinstance(force_x, (float | int)):
-                    raise ValueError("Provide a valid float for constant distributed load value for the x axis for elements of type bar.")
+                    raise ValueError(
+                        "Provide a valid float for constant distributed load value for the x axis for elements of type bar."
+                    )
 
                 return N * force_x * (L / 2) * (x_final - x_init)
             else:
                 if not isinstance(force_x, Callable):
-                    raise ValueError("For a function force in a bar, provide a callable (float) -> float function.")
+                    raise ValueError(
+                        "For a function force in a bar, provide a callable (float) -> float function."
+                    )
 
                 return N * force_x((new_xi + 1) / 2) * (L / 2) * (x_final - x_init)
         elif self.type == "beam":
@@ -402,31 +502,53 @@ class Element2D(
             if load.force_type == "constant":
                 if force_y:
                     if not isinstance(force_y, (float | int)):
-                        raise ValueError("Provide a valid float for constant load values for the y axis for elements of type beam.")
+                        raise ValueError(
+                            "Provide a valid float for constant load values for the y axis for elements of type beam."
+                        )
 
                     force_value_vector += N * force_y * (L / 2) * (x_final - x_init)
 
                 if moment:
                     if not isinstance(moment, (float | int)):
-                        raise ValueError("Provide a valid float for constant load values for moment for elements of type beam.")
+                        raise ValueError(
+                            "Provide a valid float for constant load values for moment for elements of type beam."
+                        )
 
                     dN = self.shape_functions.derivative(1, new_xi).to_vector()
 
-                    force_value_vector += (1 / self.shape_functions.jacobian) * dN * moment * (L / 2) * (x_final - x_init)
+                    force_value_vector += (
+                        (1 / self.shape_functions.jacobian)
+                        * dN
+                        * moment
+                        * (L / 2)
+                        * (x_final - x_init)
+                    )
             else:
                 if force_y:
                     if not isinstance(force_y, Callable):
-                        raise ValueError("For a function force in y axis, provide a callable (float) -> float function to force_value_y.")
+                        raise ValueError(
+                            "For a function force in y axis, provide a callable (float) -> float function to force_value_y."
+                        )
 
-                    force_value_vector += N * force_y((new_xi + 1) / 2) * (L / 2) * (x_final - x_init)
+                    force_value_vector += (
+                        N * force_y((new_xi + 1) / 2) * (L / 2) * (x_final - x_init)
+                    )
 
                 if moment:
                     if not isinstance(moment, Callable):
-                        raise ValueError("For a function force to moment, provide a callable (float) -> float function to force_value_moment.")
+                        raise ValueError(
+                            "For a function force to moment, provide a callable (float) -> float function to force_value_moment."
+                        )
 
                     dN = self.shape_functions.derivative(1, new_xi).to_vector()
 
-                    force_value_vector += (1 / self.shape_functions.jacobian) * dN * moment((new_xi + 1) / 2) * (L / 2) * (x_final - x_init)
+                    force_value_vector += (
+                        (1 / self.shape_functions.jacobian)
+                        * dN
+                        * moment((new_xi + 1) / 2)
+                        * (L / 2)
+                        * (x_final - x_init)
+                    )
 
             return force_value_vector
         else:
@@ -439,27 +561,47 @@ class Element2D(
 
             force_value_vector = Vector(rows=self.total_degree_of_freedom)
             bar_index = [3 * i for i in range(self.number_interpolation_points)]
-            beam_indices = [idx for i in range(self.number_interpolation_points) for idx in [3 * i + 1, 3 * i + 2]]
+            beam_indices = [
+                idx
+                for i in range(self.number_interpolation_points)
+                for idx in [3 * i + 1, 3 * i + 2]
+            ]
             if load.force_type == "constant":
                 if force_x:
                     if not isinstance(force_x, (float | int)):
-                        raise ValueError("Provide a valid float for constant load values for the x axis for elements of type frame.")
+                        raise ValueError(
+                            "Provide a valid float for constant load values for the x axis for elements of type frame."
+                        )
 
-                    force_value_vector[bar_index] += N[bar_index] * force_x * (L / 2) * (x_final - x_init)
+                    force_value_vector[bar_index] += (
+                        N[bar_index] * force_x * (L / 2) * (x_final - x_init)
+                    )
 
                 if force_y:
                     if not isinstance(force_y, (float | int)):
-                        raise ValueError("Provide a valid float for constant load values for the y axis for elements of type frame.")
+                        raise ValueError(
+                            "Provide a valid float for constant load values for the y axis for elements of type frame."
+                        )
 
-                    force_value_vector[beam_indices] += N[beam_indices] * force_y * (L / 2) * (x_final - x_init)
+                    force_value_vector[beam_indices] += (
+                        N[beam_indices] * force_y * (L / 2) * (x_final - x_init)
+                    )
 
                 if moment:
                     if not isinstance(moment, (float | int)):
-                        raise ValueError("Provide a valid float for constant load values for moment for elements of type frame.")
+                        raise ValueError(
+                            "Provide a valid float for constant load values for moment for elements of type frame."
+                        )
 
                     dN = self.shape_functions.derivative(1, new_xi).to_vector()
 
-                    force_value_vector[beam_indices] += (1 / self.shape_functions.jacobian) * dN[beam_indices] * moment * (L / 2) * (x_final - x_init)
+                    force_value_vector[beam_indices] += (
+                        (1 / self.shape_functions.jacobian)
+                        * dN[beam_indices]
+                        * moment
+                        * (L / 2)
+                        * (x_final - x_init)
+                    )
             else:
                 if force_x:
                     if not isinstance(force_x, Callable):
@@ -467,7 +609,12 @@ class Element2D(
                             "Provide a valid Callable[[float], float] for function distributed load values for the x axis for elements of type frame."
                         )
 
-                    force_value_vector[bar_index] += N[bar_index] * force_x((new_xi + 1) / 2) * (L / 2) * (x_final - x_init)
+                    force_value_vector[bar_index] += (
+                        N[bar_index]
+                        * force_x((new_xi + 1) / 2)
+                        * (L / 2)
+                        * (x_final - x_init)
+                    )
 
                 if force_y:
                     if not isinstance(force_y, Callable):
@@ -475,7 +622,12 @@ class Element2D(
                             "Provide a valid Callable[[float], float] for function distributed load values for the y axis for elements of type frame."
                         )
 
-                    force_value_vector[beam_indices] += N[beam_indices] * force_y((new_xi + 1) / 2) * (L / 2) * (x_final - x_init)
+                    force_value_vector[beam_indices] += (
+                        N[beam_indices]
+                        * force_y((new_xi + 1) / 2)
+                        * (L / 2)
+                        * (x_final - x_init)
+                    )
 
                 if moment:
                     if not isinstance(moment, Callable):
@@ -486,12 +638,18 @@ class Element2D(
                     dN = self.shape_functions.derivative(1, new_xi).to_vector()
 
                     force_value_vector[beam_indices] += (
-                        (1 / self.shape_functions.jacobian) * dN[beam_indices] * moment((new_xi + 1) / 2) * (L / 2) * (x_final - x_init)
+                        (1 / self.shape_functions.jacobian)
+                        * dN[beam_indices]
+                        * moment((new_xi + 1) / 2)
+                        * (L / 2)
+                        * (x_final - x_init)
                     )
 
             return force_value_vector
 
-    def _verifying_dof_number(self, number_of_points: int, degrees_of_freedom: list[list[int]]) -> int:
+    def _verifying_dof_number(
+        self, number_of_points: int, degrees_of_freedom: list[list[int]]
+    ) -> int:
         if len(degrees_of_freedom) != number_of_points:
             raise ValueError(
                 f"Provide just one information for degree of freedom for each node. Received {number_of_points} nodes and {len(degrees_of_freedom)} DOF info."
@@ -503,11 +661,15 @@ class Element2D(
 
             for dof_item in degrees_of_freedom:
                 if len(dof_item) != 1:
-                    raise ValueError("To an element of type bar, each point must have just one degree of freedom.")
+                    raise ValueError(
+                        "To an element of type bar, each point must have just one degree of freedom."
+                    )
                 total_dof += 1
 
             if total != total_dof:
-                raise ValueError(f"The total number of degree of freedom for the element must be {total} but received {total_dof}.")
+                raise ValueError(
+                    f"The total number of degree of freedom for the element must be {total} but received {total_dof}."
+                )
 
             return total_dof
         else:
@@ -531,6 +693,8 @@ class Element2D(
                     total_dof += 3
 
             if total_dof != total:
-                raise ValueError(f"The total number of degree of freedom for the element must be {total} but received {total_dof}.")
+                raise ValueError(
+                    f"The total number of degree of freedom for the element must be {total} but received {total_dof}."
+                )
 
             return total_dof

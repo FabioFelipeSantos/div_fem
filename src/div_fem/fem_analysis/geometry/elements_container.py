@@ -5,7 +5,9 @@ from div_fem.fem_analysis.geometry.elements.element_load_interface import (
     ElementLoadInterface,
 )
 from div_fem.fem_analysis.geometry.elements_interface import ElementInterface
-from div_fem.fem_analysis.structural_analysis.structural_analysis_interface import StructuralAnalysisInterface
+from div_fem.fem_analysis.structural_analysis.structural_analysis_interface import (
+    StructuralAnalysisInterface,
+)
 from div_fem.utils.descriptors.descriptor_private_name import DescriptorBaseClass
 
 if TYPE_CHECKING:
@@ -77,9 +79,13 @@ class Elements:
     def __call__(self, elements_or_index: int) -> _ContainerElement: ...
 
     @overload
-    def __call__(self, elements_or_index: _ContainerElement | list[_ContainerElement]) -> None: ...
+    def __call__(
+        self, elements_or_index: _ContainerElement | list[_ContainerElement]
+    ) -> None: ...
 
-    def __call__(self, elements_or_index: int | _ContainerElement | list[_ContainerElement]) -> _ContainerElement | None:
+    def __call__(
+        self, elements_or_index: int | _ContainerElement | list[_ContainerElement]
+    ) -> _ContainerElement | None:
         if isinstance(elements_or_index, int):
             return self._elements[elements_or_index - 1]
         else:
@@ -141,12 +147,16 @@ class Elements:
 
         begin = "Elements(\n  "
 
-        middle = ",\n  ".join([f"{self._string_for_element_info(element)}" for element in self._elements])
+        middle = ",\n  ".join(
+            [f"{self._string_for_element_info(element)}" for element in self._elements]
+        )
         end = "\n)"
         return begin + middle + end
 
     def __getitem__(self, element_index: int) -> _ContainerElement:
         if element_index > self._index_next_element - 1:
-            raise IndexError(f"The element index is greater than the number of elements {self._index_next_element -1}")
+            raise IndexError(
+                f"The element index is greater than the number of elements {self._index_next_element -1}"
+            )
 
         return self._elements[element_index]
