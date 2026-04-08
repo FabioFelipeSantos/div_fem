@@ -20,11 +20,12 @@ class ShapeFunctions(ABC):
     @abstractmethod
     def value(self, xi: float, index: int) -> float | list[float]: ...
 
+    @abstractmethod
+    def value(self, xi: float, index: int | None = None) -> Matrix | float | list[float]: ...
+
     @overload
     @abstractmethod
-    def derivative(
-        self, diff_order: int, xi: float, *, is_for_stiffness_matrix: bool = False
-    ) -> Matrix: ...
+    def derivative(self, diff_order: int, xi: float, *, is_for_stiffness_matrix: bool = False) -> Matrix: ...
 
     @overload
     @abstractmethod
@@ -47,6 +48,11 @@ class ShapeFunctions(ABC):
         *,
         is_for_stiffness_matrix: bool = False,
     ) -> list[float]: ...
+
+    @abstractmethod
+    def derivative(
+        self, diff_order: int, xi: float, index: int | list | None = None, *, is_for_stiffness_matrix: bool = False
+    ) -> Matrix | float | list[float]: ...
 
     @property
     @abstractmethod
