@@ -68,7 +68,9 @@ class Point:
 
     def __getitem__(self, idx: int) -> float:
         if idx > self._dimension - 1:
-            raise IndexError(f"Received {idx} as index for a point with {self._dimension} coordinates.")
+            raise IndexError(
+                f"Received {idx} as index for a point with {self._dimension} coordinates."
+            )
         return self._coord[idx]
 
     @overload
@@ -77,22 +79,32 @@ class Point:
     @overload
     def __setitem__(self, idx: int, values: float) -> None: ...
 
-    def __setitem__(self, idx: list[int] | int, values: _PointInputData | float) -> None:
+    def __setitem__(
+        self, idx: list[int] | int, values: _PointInputData | float
+    ) -> None:
         if isinstance(idx, list):
             if len(idx) > self._dimension:
-                raise ValueError(f"The indexes list has more values than the dimension {self._dimension} of the point.")
+                raise ValueError(
+                    f"The indexes list has more values than the dimension {self._dimension} of the point."
+                )
 
             if not isinstance(values, list):
-                raise ValueError("To set more than one coordinate for the point, provide a list of values for each coordinate.")
+                raise ValueError(
+                    "To set more than one coordinate for the point, provide a list of values for each coordinate."
+                )
 
             if len(values) > len(idx):
-                raise ValueError("The provided values have more values than the list indexes.")
+                raise ValueError(
+                    "The provided values have more values than the list indexes."
+                )
 
             for i in idx:
                 self._coord[i] = values[i]
         else:
             if idx > self._dimension:
-                raise IndexError(f"The provided index {idx} is greater than dimension {self._dimension} of the point.")
+                raise IndexError(
+                    f"The provided index {idx} is greater than dimension {self._dimension} of the point."
+                )
 
             if not isinstance(values, float):
                 raise ValueError("For just one coordinate provide one value for it.")

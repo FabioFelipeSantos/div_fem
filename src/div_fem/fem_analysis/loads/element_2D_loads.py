@@ -17,7 +17,9 @@ class ForceValueDict(TypedDict):
     moment: NotRequired[_ForceValueType]
 
 
-class Element2DLoads(ElementLoadInterface[_ForceTypes, _ForceValueType, ForceValueDict, _ForcePoint]):
+class Element2DLoads(
+    ElementLoadInterface[_ForceTypes, _ForceValueType, ForceValueDict, _ForcePoint]
+):
     """
     The Element2DLoads is a class to set any kind of force that act in an 2D element of type bar, beam or frame. The possible types of loads is concentrated (perpendicular, axial or moment) and distributed (linear or by a function). As the element is in 2D the points where the forces act must be provided in the support coordinates interval [0, 1], where 0 represents the left end of the element and 1 represents the right end of the element. So, if a load is applied at 0.5, this represent the middle of the element.
 
@@ -100,7 +102,9 @@ class Element2DLoads(ElementLoadInterface[_ForceTypes, _ForceValueType, ForceVal
         force_final_point: _ForcePoint = None,
     ) -> None:
         if not force_value_x and not force_value_y and not force_value_moment:
-            raise ValueError("To create an element load provide at least one type of value for the load.")
+            raise ValueError(
+                "To create an element load provide at least one type of value for the load."
+            )
 
         self._type = type
         self._force_point = force_point
@@ -110,13 +114,20 @@ class Element2DLoads(ElementLoadInterface[_ForceTypes, _ForceValueType, ForceVal
             "moment": force_value_moment,
         }
 
-        if (self._type == "concentrated" or self._type == "moment") and not self._force_point:
+        if (
+            self._type == "concentrated" or self._type == "moment"
+        ) and not self._force_point:
             raise ValueError(
                 "A concentrated or moment load must be provided with a local x coordinate in the element. x in [0, 1], when x = 0 is the begging of the bar and x = 1 is the final of the bar."
             )
 
-        if not (self._type == "concentrated" or self._type == "moment") and self._force_point:
-            raise ValueError("A non concentrated force cannot be provided with a point of application.")
+        if (
+            not (self._type == "concentrated" or self._type == "moment")
+            and self._force_point
+        ):
+            raise ValueError(
+                "A non concentrated force cannot be provided with a point of application."
+            )
 
         self._force_point = force_point
         self._force_init_point = force_init_point
