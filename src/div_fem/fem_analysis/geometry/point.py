@@ -1,41 +1,56 @@
 from __future__ import annotations
-from typing import overload
+from typing import TYPE_CHECKING, overload
 import numpy as np
 
 from .main_geometry_types import _PointInputData, _PointData
 
+from div_fem.utils.descriptors.descriptor_private_name import DescriptorBaseClass, PrivateName
+
+
+class PointIndex(PrivateName):
+
+    def __get__(self, obj: Point, objtype=None) -> int:
+        value = getattr(obj, self.private_name, None)
+
+        if not value:
+            raise AttributeError("The Point index can only be accessed after it being in Points class")
+
+        return value
+
+    def __set__(self, obj: Point, value: int) -> None:
+        if value < 0:
+            raise ValueError(f"A index for point must be greater than 0. Received {value}")
+        setattr(obj, self.private_name, value)
+
+
+class DOFNumbers(PrivateName):
+
+    def __get__(self, obj: Point, objtype=None) -> list[int]:
+        value = getattr(obj, self.private_name, None)
+
+        if not value:
+            raise AttributeError(
+                "The DOFNumbers can only be accessed after the point being in the Point class with an Structural Analysis class instantiated"
+            )
+
+        return value
+
+    def __set__(self, obj: Point, value: list[int]) -> None:
+        setattr(obj, self.private_name, value)
+
 
 class Point:
+
     _coord: _PointData
     _dimension: int
-    _dof_numbers: list[int] | None
-    _point_index: int | None
 
-    def __init__(self, coord: _PointInputData) -> None:
-        self._coord = list(coord)
-        self._dimension = len(coord)
-        self._dof_numbers = None
-        self._point_index = None
+    dof_numbers = DOFNumbers()
+    index = PointIndex()
+    dof_per_node = DescriptorBaseClass[int]()
 
-    def set_dof_numbers(self, dof_numbers: list[int]) -> None:
-        self._dof_numbers = dof_numbers
-
-    def set_point_index(self, point_index: int) -> None:
-        self._point_index = point_index
-
-    @property
-    def point_index(self) -> int:
-        if not self._point_index:
-            raise ValueError("The point must be in the Points container.")
-
-        return self._point_index
-
-    @property
-    def dof_numbers(self) -> list[int]:
-        if not self._dof_numbers:
-            raise ValueError("The point must be present at some element in elements container.")
-
-        return self._dof_numbers
+    def __init__(self, coordinates: _PointInputData) -> None:
+        self._coord = list(coordinates)
+        self._dimension = len(coordinates)
 
     @property
     def norm(self) -> float:
