@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Self, overload
 import numpy as np
 
-from div_fem.utils.descriptors.descriptor_private_name import PrivateName
+from div_fem.utils.descriptors.descriptor_private_name import PrivateName, DescriptorBaseClass
 
 if TYPE_CHECKING:
     from div_fem.fem_analysis.geometry.point import Point
@@ -21,9 +21,7 @@ class StructuralAnalysis(PrivateName):
 
         if obj.number_of_points > 0:
             for point in obj.points:
-                point.dof_numbers = obj._calculating_dof_numbers(
-                    index_point=point.index
-                )
+                point.dof_numbers = obj.calculating_dof_numbers(index_point=point.index)
 
 
 class Points:
@@ -35,7 +33,7 @@ class Points:
 
     structural_analysis = StructuralAnalysis()
 
-    _dof_per_node: int
+    dof_per_node = DescriptorBaseClass[int]()
 
     def __new__(cls, degree_of_freedom: int) -> Self:
         if cls._instance:
@@ -49,7 +47,7 @@ class Points:
             return
 
         self._initialized = True
-        self._dof_per_node = degree_of_freedom
+        self.dof_per_node = degree_of_freedom
 
     @overload
     def __call__(self, elements: int) -> Point:
@@ -80,7 +78,7 @@ class Points:
 
     @property
     def number_of_points(self) -> int:
-        return self._index_next_point - 1
+        return len(self._points)
 
     @property
     def points(self) -> list[Point]:
@@ -101,19 +99,17 @@ class Points:
     def _add_new_point(self, point: Point) -> None:
         self._points.append(point)
         point.index = self._index_next_point
-        point.dof_per_node = self._dof_per_node
-        point.dof_numbers = self._calculating_dof_numbers()
+        point.dof_per_node = self.dof_per_node
+        point.dof_numbers = self.calculating_dof_numbers()
         self._index_next_point += 1
 
-    def _calculating_dof_numbers(self, index_point: int | None = None) -> list[int]:
-        indexes = np.arange(self._dof_per_node)
+    def calculating_dof_numbers(self, index_point: int | None = None) -> list[int]:
+        indexes = np.arange(self.dof_per_node)
 
-        if index_point:
-            return (self._dof_per_node * (index_point - 1) + indexes).tolist()
+        if index_point is not None:
+            return (self.dof_per_node * index_point + indexes).tolist()
         else:
-            return (
-                self._dof_per_node * (self._index_next_point - 1) + indexes
-            ).tolist()
+            return (self.dof_per_node * (self._index_next_point - 1) + indexes).tolist()
 
     def print(self) -> None:
         print(str(self))
@@ -126,16 +122,9 @@ class Points:
         begin = "Points(\n    "
 
         if self.structural_analysis:
-            middle = ",\n    ".join(
-                [
-                    f"Point[{point.index}]{str(point)}; DOF: {point.dof_numbers}"
-                    for point in self._points
-                ]
-            )
+            middle = ",\n    ".join([f"Point[{point.index}]{str(point)}; DOF: {point.dof_numbers}" for point in self._points])
         else:
-            middle = ",\n    ".join(
-                [f"Point[{point.index}]{str(point)}" for point in self._points]
-            )
+            middle = ",\n    ".join([f"Point[{point.index}]{str(point)}" for point in self._points])
 
         end = "\n)"
         return begin + middle + end
