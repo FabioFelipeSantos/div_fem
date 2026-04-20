@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 #     rotation: NotRequired[float]
 
 _BoundaryInfoKeys = Literal["x", "y", "moment"]
+BOUNDARY_NAMES = ["x", "y", "moment"]
+
 _BoundaryCondition2DInfo = Mapping[_BoundaryInfoKeys, float | None]
 
 
@@ -19,6 +21,8 @@ class BoundaryCondition:
     _boundary_info: _BoundaryCondition2DInfo
     _rotation: None | float
 
+    index: int
+
     def __init__(
         self,
         point: Point,
@@ -26,7 +30,10 @@ class BoundaryCondition:
         rotation: float | None = None,
     ) -> None:
         self._point = point
-        self._boundary_info = boundary_info
+        x_condition = boundary_info.get("x", None)
+        y_condition = boundary_info.get("y", None)
+        moment_condition = boundary_info.get("moment", None)
+        self._boundary_info = {"x": x_condition, "y": y_condition, "moment": moment_condition}
         self._rotation = rotation
 
     @property
@@ -41,9 +48,7 @@ class BoundaryCondition:
         self,
     ) -> _BoundaryCondition2DInfo: ...
 
-    def boundary_condition(
-        self, axis: _BoundaryInfoKeys | None = None
-    ) -> None | float | _BoundaryCondition2DInfo:
+    def boundary_condition(self, axis: _BoundaryInfoKeys | None = None) -> None | float | _BoundaryCondition2DInfo:
         if not axis:
             return {
                 "x": self._boundary_info.get("x"),
@@ -79,9 +84,7 @@ class BoundaryCondition:
     ) -> tuple[Literal[True], float] | tuple[Literal[False], None]:
         return self._prescribed_value(self._boundary_info.get("moment"))
 
-    def _prescribed_value(
-        self, value: None | float
-    ) -> tuple[Literal[True], float] | tuple[Literal[False], None]:
+    def _prescribed_value(self, value: None | float) -> tuple[Literal[True], float] | tuple[Literal[False], None]:
         if value is None:
             return False, None
         else:
@@ -94,3 +97,20 @@ class BoundaryCondition:
             return False
         else:
             return True
+
+    def __str__(self) -> str:
+        string = f"Condition[{repr(self._point)}]("
+
+        if self._boundary_info["x"] is not None:
+            string += f"x: {self._boundary_info['x']}"
+
+        if self._boundary_info["y"] is not None:
+            string += f", y: {self._boundary_info['y']}"
+
+        if self._boundary_info["moment"] is not None:
+            string += f", moment: {self._boundary_info['moment']}"
+
+        if self._rotation is not None:
+            string += f", rotation: {self._rotation}"
+
+        return string + ")"
