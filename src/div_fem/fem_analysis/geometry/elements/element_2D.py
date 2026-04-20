@@ -52,14 +52,14 @@ class Element2D(
     ) -> None:
 
         self.type = type
-        self._extreme_points = points
+        self.extreme_points = points
         self._coords_vector = Vector([*points[0], *points[1]])
         self.number_interpolation_points = number_interpolation_points if number_interpolation_points else 2
         self._dof_per_node = points[0].dof_per_node
         self.total_degree_of_freedom = (self.number_interpolation_points) * self._dof_per_node
 
         length, c_x, c_y = self._calculating_cosine_angles()
-        self._geometry_properties = {
+        self.geometry_properties = {
             "length": length,
             "cosine_x": c_x,
             "cosine_y": c_y,
@@ -68,7 +68,7 @@ class Element2D(
         if not material_and_section_properties.get("nu"):
             material_and_section_properties.update({"nu": None})
 
-        self._material_and_section_properties = material_and_section_properties
+        self.material_and_section_properties = material_and_section_properties
         self._loads = loads
 
         self.shape_functions = ShapeFunctions2D(
@@ -78,16 +78,25 @@ class Element2D(
             cast(_ElementType, self.type),
         )
 
-        self._interpolation_points = self._calculating_points()
+        self.interpolation_points = self._calculating_points()
         self.interpolation_points_already_put_in_points_class = False
 
     @property
-    def interpolation_points(self) -> list[Point]:
-        return self._interpolation_points
+    def points(self) -> list[Point]:
+        all_points: list[Point] = [self.extreme_points[0]]
+        for point in self.interpolation_points:
+            all_points.append(point)
+        all_points.append(self.extreme_points[1])
+        return all_points
 
     @property
-    def extreme_points(self) -> tuple[Point, Point]:
-        return self._extreme_points
+    def degree_of_freedom(self) -> list[int]:
+        element_dof: list[int] = []
+
+        for point in self.points:
+            element_dof += point.dof_numbers
+
+        return element_dof
 
     @property
     def T(self) -> Matrix:
@@ -117,28 +126,28 @@ class Element2D(
             stiffness_matrix = gauss_quadrature(
                 self._integration_function_for_stiffness_matrix,
                 1,
-                E=self._material_and_section_properties["E"],
-                A=self._material_and_section_properties["A"],
-                L=self._geometry_properties["length"],
+                E=self.material_and_section_properties["E"],
+                A=self.material_and_section_properties["A"],
+                L=self.geometry_properties["length"],
             )
         elif self.type == "beam":
             number_of_points = 2 * (self.number_interpolation_points - 1)
             stiffness_matrix = gauss_quadrature(
                 self._integration_function_for_stiffness_matrix,
                 number_of_points,
-                E=self._material_and_section_properties["E"],
-                I=self._material_and_section_properties["I"],
-                L=self._geometry_properties["length"],
+                E=self.material_and_section_properties["E"],
+                I=self.material_and_section_properties["I"],
+                L=self.geometry_properties["length"],
             )
         else:
             number_of_points = 2 * (self.number_interpolation_points - 1)
             stiffness_matrix = gauss_quadrature(
                 self._integration_function_for_stiffness_matrix,
                 number_of_points,
-                E=self._material_and_section_properties["E"],
-                A=self._material_and_section_properties["A"],
-                I=self._material_and_section_properties["I"],
-                L=self._geometry_properties["length"],
+                E=self.material_and_section_properties["E"],
+                A=self.material_and_section_properties["A"],
+                I=self.material_and_section_properties["I"],
+                L=self.geometry_properties["length"],
             )
 
         return stiffness_matrix
@@ -166,21 +175,17 @@ class Element2D(
                         self._integration_function_for_forces_vector,
                         self.number_interpolation_points,
                         load=load,
-                        L=self._geometry_properties["length"],
+                        L=self.geometry_properties["length"],
                     )
                 else:
                     equivalent_forces += gauss_quadrature(
                         self._integration_function_for_forces_vector,
                         6,
                         load=load,
-                        L=self._geometry_properties["length"],
+                        L=self.geometry_properties["length"],
                     )
 
         return equivalent_forces
-
-    @property
-    def geometry_properties(self) -> GeometryProperties:
-        return self._geometry_properties
 
     def _calculating_points(self) -> list[Point]:
         h = 2 / (self.number_interpolation_points - 1)
@@ -212,12 +217,12 @@ class Element2D(
         return interpolation_points
 
     def _calculating_length(self) -> float:
-        return (Vector(self._extreme_points[1]) - Vector(self._extreme_points[0])).norm
+        return (Vector(self.extreme_points[1]) - Vector(self.extreme_points[0])).norm
 
     def _calculating_cosine_angles(self) -> tuple[float, float, float]:
         length = self._calculating_length()
-        c = (self._extreme_points[1][0] - self._extreme_points[0][0]) / length
-        s = (self._extreme_points[1][1] - self._extreme_points[0][1]) / length
+        c = (self.extreme_points[1][0] - self.extreme_points[0][0]) / length
+        s = (self.extreme_points[1][1] - self.extreme_points[0][1]) / length
 
         return (length, c, s)
 
@@ -331,7 +336,9 @@ class Element2D(
                     if not isinstance(moment, (float | int)):
                         raise ValueError("To concentrated y axis load provide a float value.")
 
-                    force_vector += self.shape_functions.derivative(1, point).to_vector() * moment * (1 / self.shape_functions.jacobian)
+                    force_vector += (
+                        self.shape_functions.derivative(1, point).to_vector() * moment * (1 / self.shape_functions.jacobian)
+                    )
 
                 return force_vector
         else:
@@ -408,7 +415,9 @@ class Element2D(
 
             if load.force_type == "constant":
                 if not isinstance(force_x, (float | int)):
-                    raise ValueError("Provide a valid float for constant distributed load value for the x axis for elements of type bar.")
+                    raise ValueError(
+                        "Provide a valid float for constant distributed load value for the x axis for elements of type bar."
+                    )
 
                 return N * force_x * (L / 2) * (x_final - x_init)
             else:
@@ -429,7 +438,9 @@ class Element2D(
             if load.force_type == "constant":
                 if force_y:
                     if not isinstance(force_y, (float | int)):
-                        raise ValueError("Provide a valid float for constant load values for the y axis for elements of type beam.")
+                        raise ValueError(
+                            "Provide a valid float for constant load values for the y axis for elements of type beam."
+                        )
 
                     force_value_vector += N * force_y * (L / 2) * (x_final - x_init)
 
@@ -443,17 +454,23 @@ class Element2D(
             else:
                 if force_y:
                     if not isinstance(force_y, Callable):
-                        raise ValueError("For a function force in y axis, provide a callable (float) -> float function to force_value_y.")
+                        raise ValueError(
+                            "For a function force in y axis, provide a callable (float) -> float function to force_value_y."
+                        )
 
                     force_value_vector += N * force_y((new_xi + 1) / 2) * (L / 2) * (x_final - x_init)
 
                 if moment:
                     if not isinstance(moment, Callable):
-                        raise ValueError("For a function force to moment, provide a callable (float) -> float function to force_value_moment.")
+                        raise ValueError(
+                            "For a function force to moment, provide a callable (float) -> float function to force_value_moment."
+                        )
 
                     dN = self.shape_functions.derivative(1, new_xi).to_vector()
 
-                    force_value_vector += (1 / self.shape_functions.jacobian) * dN * moment((new_xi + 1) / 2) * (L / 2) * (x_final - x_init)
+                    force_value_vector += (
+                        (1 / self.shape_functions.jacobian) * dN * moment((new_xi + 1) / 2) * (L / 2) * (x_final - x_init)
+                    )
 
             return force_value_vector
         else:
@@ -470,13 +487,17 @@ class Element2D(
             if load.force_type == "constant":
                 if force_x:
                     if not isinstance(force_x, (float | int)):
-                        raise ValueError("Provide a valid float for constant load values for the x axis for elements of type frame.")
+                        raise ValueError(
+                            "Provide a valid float for constant load values for the x axis for elements of type frame."
+                        )
 
                     force_value_vector[bar_index] += N[bar_index] * force_x * (L / 2) * (x_final - x_init)
 
                 if force_y:
                     if not isinstance(force_y, (float | int)):
-                        raise ValueError("Provide a valid float for constant load values for the y axis for elements of type frame.")
+                        raise ValueError(
+                            "Provide a valid float for constant load values for the y axis for elements of type frame."
+                        )
 
                     force_value_vector[beam_indices] += N[beam_indices] * force_y * (L / 2) * (x_final - x_init)
 
@@ -486,7 +507,9 @@ class Element2D(
 
                     dN = self.shape_functions.derivative(1, new_xi).to_vector()
 
-                    force_value_vector[beam_indices] += (1 / self.shape_functions.jacobian) * dN[beam_indices] * moment * (L / 2) * (x_final - x_init)
+                    force_value_vector[beam_indices] += (
+                        (1 / self.shape_functions.jacobian) * dN[beam_indices] * moment * (L / 2) * (x_final - x_init)
+                    )
             else:
                 if force_x:
                     if not isinstance(force_x, Callable):
@@ -513,7 +536,11 @@ class Element2D(
                     dN = self.shape_functions.derivative(1, new_xi).to_vector()
 
                     force_value_vector[beam_indices] += (
-                        (1 / self.shape_functions.jacobian) * dN[beam_indices] * moment((new_xi + 1) / 2) * (L / 2) * (x_final - x_init)
+                        (1 / self.shape_functions.jacobian)
+                        * dN[beam_indices]
+                        * moment((new_xi + 1) / 2)
+                        * (L / 2)
+                        * (x_final - x_init)
                     )
 
             return force_value_vector
@@ -534,7 +561,9 @@ class Element2D(
                 total_dof += 1
 
             if total != total_dof:
-                raise ValueError(f"The total number of degree of freedom for the element must be {total} but received {total_dof}.")
+                raise ValueError(
+                    f"The total number of degree of freedom for the element must be {total} but received {total_dof}."
+                )
 
             return total_dof
         else:
@@ -558,6 +587,8 @@ class Element2D(
                     total_dof += 3
 
             if total_dof != total:
-                raise ValueError(f"The total number of degree of freedom for the element must be {total} but received {total_dof}.")
+                raise ValueError(
+                    f"The total number of degree of freedom for the element must be {total} but received {total_dof}."
+                )
 
             return total_dof
