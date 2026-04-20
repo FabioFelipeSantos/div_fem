@@ -15,21 +15,15 @@ from div_fem.utils.descriptors.descriptor_private_name import DescriptorBaseClas
 if TYPE_CHECKING:
     from div_fem.fem_analysis.geometry.elements_container import Elements
 
-_GeometryProperties = TypeVar(
-    "_GeometryProperties", bound=Mapping[str, Any], covariant=True
-)
-_MaterialAndSectionProperties = TypeVar(
-    "_MaterialAndSectionProperties", bound=Mapping[str, Any], covariant=True
-)
+_GeometryProperties = TypeVar("_GeometryProperties", bound=Mapping[str, Any], covariant=True)
+_MaterialAndSectionProperties = TypeVar("_MaterialAndSectionProperties", bound=Mapping[str, Any], covariant=True)
 _ElementType = TypeVar("_ElementType", bound=str, covariant=True)
 _ElementLoad = TypeVar("_ElementLoad", bound=ElementLoadInterface, covariant=True)
 
 
 def index_validation(value: int) -> None:
     if value < 0:
-        raise ValueError(
-            f"A index for the element must be greater than 0. Received {value}"
-        )
+        raise ValueError(f"A index for the element must be greater than 0. Received {value}")
 
     return
 
@@ -43,10 +37,10 @@ class ElementInterface(
         _ElementLoad,
     ],
 ):
-    _extreme_points: tuple[Point, Point]
-    _points: list[Point]
-    _geometry_properties: _GeometryProperties
-    _material_and_section_properties: _MaterialAndSectionProperties
+    extreme_points: tuple[Point, Point]
+    interpolation_points: list[Point]
+    geometry_properties: _GeometryProperties
+    material_and_section_properties: _MaterialAndSectionProperties
     _loads: list[_ElementLoad] | None
 
     type = DescriptorBaseClass[_ElementType]()
@@ -57,6 +51,14 @@ class ElementInterface(
     index = DescriptorBaseClass[int](validation=index_validation)
     total_degree_of_freedom = DescriptorBaseClass[int]()
     shape_functions = DescriptorBaseClass[ShapeFunctions]()
+
+    @property
+    @abstractmethod
+    def points(self) -> list[Point]: ...
+
+    @property
+    @abstractmethod
+    def degree_of_freedom(self) -> list[int]: ...
 
     @property
     @abstractmethod
@@ -74,18 +76,6 @@ class ElementInterface(
     @abstractmethod
     def local_forces_vector(self) -> Vector: ...
 
-    @property
-    @abstractmethod
-    def geometry_properties(self) -> _GeometryProperties: ...
-
-    @property
-    @abstractmethod
-    def interpolation_points(self) -> list[Point]: ...
-
-    @property
-    @abstractmethod
-    def extreme_points(self) -> tuple[Point, Point]: ...
-
     def print(self, idx: int | None = None) -> None:
         """
         This function prints the element information. If a argument idx is passed, so the info of the point is provided as (Point, Degrees of Freedom)
@@ -99,7 +89,7 @@ class ElementInterface(
         begin = f"Element(\n  "
         element_data: list[str] = []
 
-        for idx, point in enumerate(self._extreme_points):
+        for idx, point in enumerate(self.extreme_points):
             dof_numbers: list[int] | None = getattr(point, "dof_numbers", None)
             if not dof_numbers:
                 element_data.append(f"{idx + 1}: {repr(point)}")
@@ -112,7 +102,7 @@ class ElementInterface(
         return begin + element_string + end
 
     def __repr__(self) -> str:
-        return f"Element({", ".join([repr(point) for point in self._extreme_points])})"
+        return f"Element({", ".join([repr(point) for point in self.extreme_points])})"
 
     def __getitem__(self, idx: int) -> tuple[Point, list[int]]:
         """
@@ -126,4 +116,4 @@ class ElementInterface(
                 f"The element doesn't have more than {self.number_interpolation_points} points. The index count starts at zero."
             )
 
-        return (self._extreme_points[idx], self._extreme_points[idx].dof_numbers)
+        return (self.extreme_points[idx], self.extreme_points[idx].dof_numbers)
