@@ -21,7 +21,7 @@ class DescriptorBaseClass(PrivateName, Generic[_T]):
 
         if not value:
             raise AttributeError(
-                f"The {str(obj.__class__.__name__).capitalize()} class hasn't have your value set. Provide a correct place to the class so the atribute be set."
+                f"The {self.private_name[1:]} attribute hasn't have your value set. Provide a correct place to the attribute in the {obj.__class__.__name__} class"
             )
 
         return value
