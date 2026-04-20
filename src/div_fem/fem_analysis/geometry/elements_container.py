@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections import defaultdict, deque
 from typing import TYPE_CHECKING, Any, Mapping, Self, Union, overload
 
 from div_fem.fem_analysis.geometry.elements.element_load_interface import (
@@ -24,6 +25,8 @@ _ContainerElement = ElementInterface[
         Union[float, "Point", None],
     ],
 ]
+
+_Adjacency = Mapping[int, set[int]]
 
 
 class StructuralAnalysisDescriptor(DescriptorBaseClass[StructuralAnalysisInterface]):
@@ -79,13 +82,9 @@ class Elements:
     def __call__(self, elements_or_index: int) -> _ContainerElement: ...
 
     @overload
-    def __call__(
-        self, elements_or_index: _ContainerElement | list[_ContainerElement]
-    ) -> None: ...
+    def __call__(self, elements_or_index: _ContainerElement | list[_ContainerElement]) -> None: ...
 
-    def __call__(
-        self, elements_or_index: int | _ContainerElement | list[_ContainerElement]
-    ) -> _ContainerElement | None:
+    def __call__(self, elements_or_index: int | _ContainerElement | list[_ContainerElement]) -> _ContainerElement | None:
         if isinstance(elements_or_index, int):
             return self._elements[elements_or_index - 1]
         else:
@@ -99,6 +98,39 @@ class Elements:
             self._adding_one_element(elements)
 
         return
+
+    def adjacency(self) -> _Adjacency:
+        adjacency: _Adjacency = defaultdict(set)
+
+        for element in self._elements:
+            all_nodes = [point.index for point in element.points]
+
+            for i in all_nodes:
+                for j in all_nodes:
+                    if i != j:
+                        adjacency[i].add(j)
+
+        return adjacency
+
+    def reverse_cuthill_mckee(self) -> list[int]:
+        adjacencies = self.adjacency()
+
+        start = min(adjacencies, key=lambda n: len(adjacencies[n]))
+
+        visited: list[int] = []
+        queue = deque[int]([start])
+        seen = {start}
+
+        while queue:
+            node = queue.popleft()
+            visited.append(node)
+            neighbors = sorted(adjacencies[node] - seen, key=lambda n: len(adjacencies[n]))
+
+            for neighbor in neighbors:
+                seen.add(neighbor)
+                queue.append(neighbor)
+
+        return list(reversed(visited))
 
     def _adding_one_element(self, element: _ContainerElement) -> None:
         element.elements_container = self
@@ -147,16 +179,12 @@ class Elements:
 
         begin = "Elements(\n  "
 
-        middle = ",\n  ".join(
-            [f"{self._string_for_element_info(element)}" for element in self._elements]
-        )
+        middle = ",\n  ".join([f"{self._string_for_element_info(element)}" for element in self._elements])
         end = "\n)"
         return begin + middle + end
 
     def __getitem__(self, element_index: int) -> _ContainerElement:
         if element_index > self._index_next_element - 1:
-            raise IndexError(
-                f"The element index is greater than the number of elements {self._index_next_element -1}"
-            )
+            raise IndexError(f"The element index is greater than the number of elements {self._index_next_element -1}")
 
         return self._elements[element_index]
