@@ -17,6 +17,10 @@ def reset_singletons():
 
 def test_boundaries_conditions_singleton():
     bc1 = BoundariesConditions()
+    # Test early return in __init__ when already initialized
+    bc1.__init__()
+    assert bc1._initialized is True
+    
     with pytest.raises(ValueError, match="The Boundaries Conditions object must be single per analysis."):
         bc2 = BoundariesConditions()
 

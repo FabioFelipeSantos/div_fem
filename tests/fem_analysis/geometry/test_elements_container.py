@@ -28,6 +28,10 @@ def reset_singletons():
 
 def test_elements_singleton():
     elems1 = Elements()
+    # Test early return in __init__ when already initialized
+    elems1.__init__()
+    assert elems1._initialized is True
+    
     with pytest.raises(ValueError, match="The Elements object must be single per analysis."):
         elems2 = Elements()
 

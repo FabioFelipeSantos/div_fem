@@ -18,6 +18,10 @@ def reset_singletons():
 
 def test_points_singleton():
     pts1 = Points(2)
+    # Test early return in __init__ when already initialized
+    pts1.__init__(2)
+    assert pts1._initialized is True
+    
     with pytest.raises(ValueError, match="The Points object must be single per analysis."):
         pts2 = Points(2)
 
