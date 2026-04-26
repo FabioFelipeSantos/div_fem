@@ -116,7 +116,7 @@ class Points:
         return
 
     def __str__(self) -> str:
-        if len(self._points) == 1:
+        if len(self._points) == 0:
             return "Points()"
 
         begin = "Points(\n    "

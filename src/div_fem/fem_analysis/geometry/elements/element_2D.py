@@ -126,28 +126,28 @@ class Element2D(
             stiffness_matrix = gauss_quadrature(
                 self._integration_function_for_stiffness_matrix,
                 1,
-                E=self.material_and_section_properties["E"],
-                A=self.material_and_section_properties["A"],
-                L=self.geometry_properties["length"],
+                E=self.material_and_section_properties.get("E"),
+                A=self.material_and_section_properties.get("A"),
+                L=self.geometry_properties.get("length"),
             )
         elif self.type == "beam":
             number_of_points = 2 * (self.number_interpolation_points - 1)
             stiffness_matrix = gauss_quadrature(
                 self._integration_function_for_stiffness_matrix,
                 number_of_points,
-                E=self.material_and_section_properties["E"],
-                I=self.material_and_section_properties["I"],
-                L=self.geometry_properties["length"],
+                E=self.material_and_section_properties.get("E"),
+                I=self.material_and_section_properties.get("I"),
+                L=self.geometry_properties.get("length"),
             )
         else:
             number_of_points = 2 * (self.number_interpolation_points - 1)
             stiffness_matrix = gauss_quadrature(
                 self._integration_function_for_stiffness_matrix,
                 number_of_points,
-                E=self.material_and_section_properties["E"],
-                A=self.material_and_section_properties["A"],
-                I=self.material_and_section_properties["I"],
-                L=self.geometry_properties["length"],
+                E=self.material_and_section_properties.get("E"),
+                A=self.material_and_section_properties.get("A"),
+                I=self.material_and_section_properties.get("I"),
+                L=self.geometry_properties.get("length"),
             )
 
         return stiffness_matrix
