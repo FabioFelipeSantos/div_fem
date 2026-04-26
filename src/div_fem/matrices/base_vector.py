@@ -64,6 +64,7 @@ class Vector:
 
     @property
     def T(self) -> Matrix:
+        from .base_matrix import Matrix
         transpose_vector = Matrix(rows=1, columns=self.rows)
 
         for i in range(self.rows):
@@ -167,6 +168,7 @@ class Vector:
     def __mul__(self, other: float) -> Vector: ...
 
     def __mul__(self, other: Matrix | _MatrixInputType | float) -> Matrix | Vector:
+        from .base_matrix import Matrix
         if isinstance(other, (float, int)):
             return Vector((np.array(self._data) * other).tolist())
 
