@@ -132,3 +132,105 @@ def test_matrix_setitem():
 
     m[[2], [0, 1, 2]] = [[0, 0, 0]]
     assert m.get_list() == [[10, 20, 3], [30, 40, 6], [0, 0, 0]]
+
+
+def test_matrix_print(capsys):
+    m = Matrix([[1, 2], [3, 4]])
+    m.print()
+    captured = capsys.readouterr()
+    assert "[" in captured.out
+
+
+def test_matrix_statics_without_n():
+    mz = Matrix.zeros(3)
+    assert mz.shape == (3, 3)
+    mr = Matrix.random(3)
+    assert mr.shape == (3, 3)
+
+
+def test_matrix_repr():
+    m = Matrix([[1, 2], [3, 4]])
+    rep = repr(m)
+    assert rep.startswith("Matrix(")
+    assert rep.endswith(")")
+
+
+def test_matrix_iadd_exceptions():
+    m = Matrix([[1, 2], [3, 4]])
+    with pytest.raises(ValueError, match="To sum a matrix in place, the second matrix must have the same number of rows that the first."):
+        m += Matrix([[1, 2]])
+
+    with pytest.raises(ValueError, match="To sum a matrix in place, the second matrix must have the same number of columns that the first."):
+        m += Matrix([[1], [2]])
+
+    m += [[1, 2], [3, 4]]
+    assert m.get_list() == [[2, 4], [6, 8]]
+
+
+def test_matrix_mul_details():
+    m = Matrix([[1, 2], [3, 4]])
+    
+    # Int / Float
+    res_int = m * 2
+    assert res_int.get_list() == [[2, 4], [6, 8]]
+    res_float = m * 0.5
+    assert res_float.get_list() == [[0.5, 1.0], [1.5, 2.0]]
+
+    # Matrix
+    m2 = Matrix([[1, 0], [0, 1]])
+    res_m = m * m2
+    assert res_m.get_list() == [[1, 2], [3, 4]]
+
+    # Vector
+    v = Vector([1, 1])
+    res_v = m * v
+    assert isinstance(res_v, Vector)
+    assert res_v.get_list() == [3, 7]
+
+    # Object with get_list() (not sequence)
+    class FakeVector:
+        def get_list(self):
+            return [1, 1]
+    
+    res_fake = m * FakeVector()
+    assert isinstance(res_fake, Vector)
+    assert res_fake.get_list() == [3, 7]
+
+    # 1D Sequence
+    res_seq_1d = m * [1, 1]
+    assert isinstance(res_seq_1d, Vector)
+    assert res_seq_1d.get_list() == [3, 7]
+
+    # 2D Sequence
+    res_seq_2d = m * [[1, 0], [0, 1]]
+    assert isinstance(res_seq_2d, Matrix)
+    assert res_seq_2d.get_list() == [[1, 2], [3, 4]]
+
+
+def test_matrix_getitem_exceptions():
+    m = Matrix([[1, 2], [3, 4]])
+    
+    with pytest.raises(ValueError, match="This matrix's values can be accessible in the ways"):
+        m[[0], 1]
+        
+    with pytest.raises(ValueError, match="This matrix's values can be accessible in the ways"):
+        m[0, [1]]
+
+
+def test_matrix_setitem_exceptions():
+    m = Matrix([[1, 2], [3, 4]])
+    
+    with pytest.raises(ValueError, match="Single element assignment requires a scalar value."):
+        m[0, 0] = [1]
+        
+    with pytest.raises(ValueError, match="This matrix's values can be accessible in the ways"):
+        m[[0], 1] = 1
+        
+    with pytest.raises(ValueError, match="The value for a list of indexes must be a valid Matrix or list of lists with the same size of the indexes"):
+        m[[0], [0]] = 1
+        
+    with pytest.raises(ValueError, match="Shape mismatch: expected 1 rows, got 2"):
+        m[[0], [0]] = [[1], [2]]
+        
+    with pytest.raises(ValueError, match="Shape mismatch in row 0: expected 1 columns, got 2"):
+        m[[0], [0]] = [[1, 2]]
