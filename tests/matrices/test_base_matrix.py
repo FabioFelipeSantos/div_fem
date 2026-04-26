@@ -133,9 +133,22 @@ def test_matrix_setitem():
     m[[2], [0, 1, 2]] = [[0, 0, 0]]
     assert m.get_list() == [[10, 20, 3], [30, 40, 6], [0, 0, 0]]
 
+    m[[0, 2]] = Matrix([[-9, -9], [-9, -9]])
+    assert m.get_list() == [[-9, 20, -9], [30, 40, 6], [-9, 0, -9]]
+
 
 def test_matrix_print(capsys):
     m = Matrix([[1, 2], [3, 4]])
+    m.print()
+    captured = capsys.readouterr()
+    assert "[" in captured.out
+
+    m.type_of_print_specifier = "integer"
+    m.print()
+    captured = capsys.readouterr()
+    assert "[" in captured.out
+
+    m.type_of_print_specifier = "scientific"
     m.print()
     captured = capsys.readouterr()
     assert "[" in captured.out
