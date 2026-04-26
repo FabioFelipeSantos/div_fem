@@ -158,3 +158,75 @@ def test_vector_statics():
 
     dot = Vector.vecdot([1, 2], [3, 4])
     assert dot == 11.0
+
+
+def test_vector_init_unity_direction():
+    vu = Vector(rows=3, unity_direction_vector_dim=1)
+    assert vu.get_list() == [0, 1, 0]
+
+
+def test_vector_print_specifiers(capsys):
+    v = Vector([1.234567, 100])
+    
+    v.type_of_print_specifier = "decimal"
+    v.print()
+    captured = capsys.readouterr()
+    assert "1.2346" in captured.out
+    
+    v.type_of_print_specifier = "scientific"
+    v.print()
+    captured = capsys.readouterr()
+    assert "1.234567E+00" in captured.out
+    
+    v.type_of_print_specifier = "integer"
+    v.print()
+    captured = capsys.readouterr()
+    assert "   1" in captured.out
+
+
+def test_vector_repr():
+    v = Vector([1, 2])
+    rep = repr(v)
+    assert rep.startswith("Vector(")
+    assert rep.endswith(")")
+
+
+def test_vector_iadd_exceptions():
+    v = Vector([1, 2])
+    v += [3, 4]
+    assert v.get_list() == [4, 6]
+    
+    with pytest.raises(ValueError, match="To sum a vector in place, the second vector must have the same number of rows that the first."):
+        v += Vector([1, 2, 3])
+
+
+def test_vector_mul_exceptions():
+    v = Vector([1, 2])
+    
+    res = v * [[1, 2, 3]]
+    assert isinstance(res, Matrix)
+    assert res.shape == (2, 3)
+    
+    with pytest.raises(ValueError, match="Shape mismatch error for matrix. Hope to get 1, received 2."):
+        v * Matrix([[1, 2], [3, 4]])
+
+
+def test_vector_setitem_exceptions():
+    v = Vector([10, 20])
+    
+    with pytest.raises(ValueError, match="Single element assignment requires a scalar value."):
+        v[0] = [1]
+        
+    with pytest.raises(ValueError, match="The value for a list of indexes must be a valid Vector or list of scalars with the same size of the indexes"):
+        v[[0]] = 1
+        
+    with pytest.raises(ValueError, match="Shape mismatch: expected 1 rows, got 2"):
+        v[[0]] = [1, 2]
+
+
+def test_vector_statics_norm_vecdot():
+    v = Vector([3, 4])
+    assert Vector.vector_norm(v) == 5.0
+    
+    with pytest.raises(ValueError, match="Shape mismatch error. For the dot product must vectors must be the same size."):
+        Vector.vecdot([1, 2], [1, 2, 3])
