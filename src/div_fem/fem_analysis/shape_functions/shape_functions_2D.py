@@ -67,7 +67,7 @@ class ShapeFunctions2D(ShapeFunctions):
     def value(
         self, xi: float, index: int | list[int] | None = None
     ) -> Matrix | float | list[float]:
-        if index:
+        if index is not None:
             self._raise_error_for_index_greater_than_total_dof(index)
 
             if self._type == "bar":
@@ -182,7 +182,7 @@ class ShapeFunctions2D(ShapeFunctions):
                 f"The derivative of shape functions is only available for orders: {', '.join([str(value) for value in DERIVATIVE_ORDER_VALID])}"
             )
 
-        if index:
+        if index is not None:
             self._raise_error_for_index_greater_than_total_dof(index)
 
             if self._type == "bar":
@@ -195,7 +195,9 @@ class ShapeFunctions2D(ShapeFunctions):
                     ]
             elif self._type == "beam":
                 if not isinstance(index, list):
-                    return self._Hermite_derivative(diff_order, index, xi)
+                    nodal_number = index // 2
+                    nodal_dof_zero_index = index % 2
+                    return self._Hermite_derivative(diff_order, nodal_number, xi)[nodal_dof_zero_index]
                 else:
                     values: list[float] = []
 
