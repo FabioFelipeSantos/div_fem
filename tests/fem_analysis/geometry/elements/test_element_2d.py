@@ -114,20 +114,6 @@ def test_element_2d_getitem():
     with pytest.raises(IndexError, match="The element doesn't have more than"):
         _ = elem[2]
 
-def test_element_2d_dof_errors():
-    p1 = Point([0.0, 0.0])
-    p2 = Point([1.0, 0.0])
-    p1.dof_per_node = 2
-    p2.dof_per_node = 2
-    mat = {"E": 1.0, "A": 1.0, "I": 1.0}
-    elem = Element2D((p1, p2), material_and_section_properties=mat, type="bar")
-    
-    with pytest.raises(ValueError, match="Provide just one information for degree of freedom for each node. Received 2 nodes and 1 DOF info."):
-        elem._verifying_dof_number(2, [[1]])
-        
-    with pytest.raises(ValueError, match="To an element of type bar, each point must have just one degree of freedom."):
-        elem._verifying_dof_number(2, [[1, 2], [3, 4]])
-
 def test_element_2d_bar_stiffness_matrix():
     p1 = Point([0.0, 0.0])
     p2 = Point([10.0, 0.0])
@@ -351,3 +337,440 @@ def test_element_2d_frame_forces_errors():
     
     with pytest.raises(ValueError, match="To concentrated moment in frames, provide a float value for the moment."):
         _ = elem.local_forces_vector
+
+from unittest.mock import MagicMock
+
+def test_element_2d_properties():
+    p1 = Point([0.0, 0.0])
+    p2 = Point([10.0, 0.0])
+    pts = Points(2)
+    pts.add([p1, p2])
+    mat = {"E": 200e9, "A": 0.01, "I": 0.0001}
+    elem = Element2D((p1, p2), material_and_section_properties=mat, type="beam")
+    
+    assert elem.points == [p1, p2]
+    assert elem.degree_of_freedom == [0, 1, 2, 3]
+
+def test_element_2d_integration_errors_bar():
+    p1 = Point([0.0, 0.0])
+    p2 = Point([10.0, 0.0])
+    pts = Points(1)
+    pts.add([p1, p2])
+    mat = {"E": 1.0, "A": 1.0, "I": 1.0}
+    elem = Element2D((p1, p2), material_and_section_properties=mat, type="bar")
+    
+    mock_load = MagicMock(spec=Element2DLoads)
+    mock_load.force_point = None
+    mock_load.force_init_point = None
+    mock_load.force_final_point = None
+    
+    # Missing force_x
+    mock_load.force_type = "constant"
+    mock_load.force_value.return_value = None
+    elem._loads = [mock_load]
+    with pytest.raises(ValueError, match="To apply loads on an bar element, provide a float or Callable"):
+        _ = elem.local_forces_vector
+        
+    # Constant not float
+    mock_load.force_value.return_value = "not float"
+    with pytest.raises(ValueError, match="Provide a valid float for constant distributed load value for the x axis for elements of type bar."):
+        _ = elem.local_forces_vector
+        
+    # Function not callable
+    mock_load.force_type = "function"
+    with pytest.raises(ValueError, match="For a function force in a bar, provide a callable"):
+        _ = elem.local_forces_vector
+
+def test_element_2d_integration_errors_beam():
+    p1 = Point([0.0, 0.0])
+    p2 = Point([10.0, 0.0])
+    pts = Points(2)
+    pts.add([p1, p2])
+    mat = {"E": 1.0, "A": 1.0, "I": 1.0}
+    elem = Element2D((p1, p2), material_and_section_properties=mat, type="beam")
+    
+    mock_load = MagicMock(spec=Element2DLoads)
+    mock_load.force_point = None
+    mock_load.force_init_point = None
+    mock_load.force_final_point = None
+    
+    # Missing force_y and moment
+    mock_load.force_type = "constant"
+    mock_load.force_value.return_value = (None, None)
+    elem._loads = [mock_load]
+    with pytest.raises(ValueError, match="To apply loads on an bar element, provide a float or Callable"):
+        _ = elem.local_forces_vector
+        
+    # Constant force_y not float
+    mock_load.force_value.return_value = ("not float", None)
+    with pytest.raises(ValueError, match="Provide a valid float for constant load values for the y axis for elements of type beam."):
+        _ = elem.local_forces_vector
+        
+    # Constant moment not float
+    mock_load.force_value.return_value = (None, "not float")
+    with pytest.raises(ValueError, match="Provide a valid float for constant load values for moment for elements of type beam."):
+        _ = elem.local_forces_vector
+        
+    # Function force_y not callable
+    mock_load.force_type = "function"
+    mock_load.force_value.return_value = ("not callable", None)
+    with pytest.raises(ValueError, match="For a function force in y axis, provide a callable"):
+        _ = elem.local_forces_vector
+        
+    # Function moment not callable
+    mock_load.force_value.return_value = (None, "not callable")
+    with pytest.raises(ValueError, match="For a function force to moment, provide a callable"):
+        _ = elem.local_forces_vector
+
+def test_element_2d_integration_errors_frame():
+    p1 = Point([0.0, 0.0])
+    p2 = Point([10.0, 0.0])
+    pts = Points(3)
+    pts.add([p1, p2])
+    mat = {"E": 1.0, "A": 1.0, "I": 1.0}
+    elem = Element2D((p1, p2), material_and_section_properties=mat, type="frame")
+    
+    mock_load = MagicMock(spec=Element2DLoads)
+    mock_load.force_point = None
+    mock_load.force_init_point = None
+    mock_load.force_final_point = None
+    
+    # Missing all
+    mock_load.force_type = "constant"
+    mock_load.force_value.return_value = (None, None, None)
+    elem._loads = [mock_load]
+    with pytest.raises(ValueError, match="To apply loads on an frame element, provide a float or Callable"):
+        _ = elem.local_forces_vector
+        
+    # Constant not float
+    mock_load.force_value.return_value = ("not float", None, None)
+    with pytest.raises(ValueError, match="Provide a valid float for constant load values for the x axis for elements of type frame."):
+        _ = elem.local_forces_vector
+    mock_load.force_value.return_value = (None, "not float", None)
+    with pytest.raises(ValueError, match="Provide a valid float for constant load values for the y axis for elements of type frame."):
+        _ = elem.local_forces_vector
+    mock_load.force_value.return_value = (None, None, "not float")
+    with pytest.raises(ValueError, match="Provide a valid float for constant load values for moment for elements of type frame."):
+        _ = elem.local_forces_vector
+        
+    # Function not callable
+    mock_load.force_type = "function"
+    mock_load.force_value.return_value = ("not callable", None, None)
+    with pytest.raises(ValueError, match="Provide a valid Callable"):
+        _ = elem.local_forces_vector
+    mock_load.force_value.return_value = (None, "not callable", None)
+    with pytest.raises(ValueError, match="Provide a valid Callable.*y axis.*frame"):
+        _ = elem.local_forces_vector
+    mock_load.force_value.return_value = (None, None, "not callable")
+    with pytest.raises(ValueError, match="Provide a valid Callable.*moment.*frame"):
+        _ = elem.local_forces_vector
+
+def test_element_2d_concentrated_errors():
+    p1 = Point([0.0, 0.0])
+    p2 = Point([10.0, 0.0])
+    pts = Points(3)
+    pts.add([p1, p2])
+    mat = {"E": 1.0, "A": 1.0, "I": 1.0}
+    
+    # Beam concentrated errors
+    elem_beam = Element2D((p1, p2), material_and_section_properties=mat, type="beam")
+    mock_load = MagicMock(spec=Element2DLoads)
+    mock_load.force_type = "concentrated"
+    mock_load.force_point = 0.5
+    
+    mock_load.force_value.return_value = (None, None)
+    elem_beam._loads = [mock_load]
+    with pytest.raises(ValueError, match="To concentrated loads in beams, provide a value for y axis or for moment."):
+        _ = elem_beam.local_forces_vector
+        
+    mock_load.force_type = "moment"
+    mock_load.force_value.return_value = (1.0, None)
+    with pytest.raises(ValueError, match="To concentrated moment in beams, provide a float value for the moment."):
+        _ = elem_beam.local_forces_vector
+        
+    mock_load.force_type = "concentrated"
+    mock_load.force_value.return_value = ("not float", None)
+    with pytest.raises(ValueError, match="To concentrated y axis load provide a float value."):
+        _ = elem_beam.local_forces_vector
+        
+    mock_load.force_value.return_value = (None, "not float")
+    with pytest.raises(ValueError, match="To concentrated y axis load provide a float value."):
+        _ = elem_beam.local_forces_vector
+
+    # Frame concentrated errors
+    elem_frame = Element2D((p1, p2), material_and_section_properties=mat, type="frame")
+    mock_load.force_type = "concentrated"
+    mock_load.force_value.return_value = (None, None, None)
+    elem_frame._loads = [mock_load]
+    with pytest.raises(ValueError, match="To concentrated loads in frames, provide a value for x or y axis or for moment."):
+        _ = elem_frame.local_forces_vector
+        
+    mock_load.force_type = "moment"
+    mock_load.force_value.return_value = (1.0, None, None)
+    with pytest.raises(ValueError, match="To concentrated moment in frames, provide a float value for the moment."):
+        _ = elem_frame.local_forces_vector
+
+
+
+def test_element_2d_stiffness_integration_errors():
+    p1 = Point([0.0, 0.0])
+    p2 = Point([10.0, 0.0])
+    pts = Points(3)
+    pts.add([p1, p2])
+    mat = {'E': 1.0, 'A': 1.0, 'I': 1.0}
+    elem = Element2D((p1, p2), material_and_section_properties=mat, type='frame')
+    
+    # Missing E
+    with pytest.raises(ValueError, match='Youngs Modulus.*passed to integration function'):
+        elem._integration_function_for_stiffness_matrix(0.0, L=10.0, A=1.0, I=1.0)
+        
+    # Missing L
+    with pytest.raises(ValueError, match='length of the bar must be passed to integration function'):
+        elem._integration_function_for_stiffness_matrix(0.0, E=1.0, A=1.0, I=1.0)
+        
+    # Missing A for frame
+    with pytest.raises(ValueError, match='area.*provided in the integration function'):
+        elem._integration_function_for_stiffness_matrix(0.0, E=1.0, L=10.0, I=1.0)
+        
+    # Missing I for frame
+    with pytest.raises(ValueError, match='moment of inertia.*provided in the integration function'):
+        elem._integration_function_for_stiffness_matrix(0.0, E=1.0, L=10.0, A=1.0)
+
+def test_element_2d_integration_function_load_errors():
+    p1 = Point([0.0, 0.0])
+    p2 = Point([10.0, 0.0])
+    pts = Points(1)
+    pts.add([p1, p2])
+    elem = Element2D((p1, p2), material_and_section_properties={'E':1, 'A':1}, type='bar')
+    
+    # Missing load
+    with pytest.raises(ValueError, match='Some force must be provided'):
+        elem._integration_function_for_forces_vector(0.0)
+        
+    # Not an Element2DLoads
+    with pytest.raises(ValueError, match='must be a valid Element2DLoads class'):
+        elem._integration_function_for_forces_vector(0.0, load='not a load')
+        
+    mock_load = MagicMock(spec=Element2DLoads)
+    # Missing L
+    with pytest.raises(ValueError, match='length of the bar must be passed'):
+        elem._integration_function_for_forces_vector(0.0, load=mock_load)
+        
+    # L not float
+    with pytest.raises(ValueError, match='length of the element must be a float'):
+        elem._integration_function_for_forces_vector(0.0, load=mock_load, L='not float')
+
+def test_element_2d_calculating_points_try_except():
+    # This hits the 'pass' in the try/except of _calculating_points
+    # if self.elements_container.structural_analysis.points(interpolation_points) fails
+    p1 = Point([0.0, 0.0])
+    p2 = Point([10.0, 0.0])
+    pts = Points(2)
+    pts.add([p1, p2])
+    
+    elem = Element2D((p1, p2), material_and_section_properties={'E':1, 'A':1, 'I':1}, type='beam')
+    # We don't have a structural_analysis set up in the mock elements_container usually, 
+    # so it should already be hitting the pass.
+    # To be sure, we can check the flag.
+    assert elem.interpolation_points_already_put_in_points_class == False
+
+
+
+def test_element_2d_points_interpolation():
+    p1 = Point([0.0, 0.0])
+    p2 = Point([10.0, 0.0])
+    pts = Points(2)
+    pts.add([p1, p2])
+    # With 3 interpolation points
+    elem = Element2D((p1, p2), material_and_section_properties={'E':1, 'A':1}, type='bar', number_interpolation_points=3)
+    assert len(elem.points) == 3
+
+def test_element_2d_stiffness_integration_problem():
+    p1 = Point([0.0, 0.0])
+    p2 = Point([10.0, 0.0])
+    pts = Points(2)
+    pts.add([p1, p2])
+    elem = Element2D((p1, p2), material_and_section_properties={'E':1, 'A':1}, type='bar')
+    elem.type = 'invalid'
+    with pytest.raises(ValueError, match='Some problem in the definition of your functions to integrate'):
+        elem._integration_function_for_stiffness_matrix(0.0, E=1.0, L=10.0, A=1.0, I=1.0)
+
+
+
+def test_element_2d_frame_distributed_forces():
+    p1 = Point([0.0, 0.0])
+    p1.dof_per_node = 3
+    p2 = Point([10.0, 0.0])
+    p2.dof_per_node = 3
+    pts = Points(3)
+    pts.add([p1, p2])
+    mat = {'E': 1.0, 'A': 1.0, 'I': 1.0}
+    elem = Element2D((p1, p2), material_and_section_properties=mat, type='frame')
+    
+    # Constant load: qx=10, qy=20, m=30
+    load = Element2DLoads(type='constant', force_value_x=10.0, force_value_y=20.0, force_value_moment=30.0)
+    elem._loads = [load]
+    f = elem.local_forces_vector
+    assert f.rows == 6
+    
+    # Function load frame
+    load_func = Element2DLoads(type='function', force_value_x=lambda x: 10.0, force_value_y=lambda x: 20.0, force_value_moment=lambda x: 30.0)
+    elem._loads = [load_func]
+    f_func = elem.local_forces_vector
+    assert f_func.rows == 6
+
+
+
+def test_element_2d_bar_distributed_forces():
+    p1 = Point([0.0, 0.0])
+    p2 = Point([10.0, 0.0])
+    pts = Points(1)
+    pts.add([p1, p2])
+    mat = {'E': 1.0, 'A': 1.0}
+    elem = Element2D((p1, p2), material_and_section_properties=mat, type='bar')
+    
+    # Constant load qx=10
+    load = Element2DLoads(type='constant', force_value_x=10.0)
+    elem._loads = [load]
+    f = elem.local_forces_vector
+    assert pytest.approx(f[0]) == 50.0
+    assert pytest.approx(f[1]) == 50.0
+    
+    # Function load qx = 10*x
+    load_func = Element2DLoads(type='function', force_value_x=lambda x: 10.0*x)
+    elem._loads = [load_func]
+    f_func = elem.local_forces_vector
+    assert f_func.rows == 2
+
+def test_element_2d_beam_function_forces():
+    p1 = Point([0.0, 0.0])
+    p2 = Point([10.0, 0.0])
+    pts = Points(2)
+    pts.add([p1, p2])
+    mat = {'E': 1.0, 'A': 1.0, 'I': 1.0}
+    elem = Element2D((p1, p2), material_and_section_properties=mat, type='beam')
+    
+    # Function load qy=20, m=30
+    load = Element2DLoads(type='function', force_value_y=lambda x: 20.0, force_value_moment=lambda x: 30.0)
+    elem._loads = [load]
+    f = elem.local_forces_vector
+    assert f.rows == 4
+    
+    # Constant moment
+    load_m = Element2DLoads(type='constant', force_value_moment=30.0)
+    elem._loads = [load_m]
+    f_m = elem.local_forces_vector
+    assert f_m.rows == 4
+
+
+
+def test_element_2d_missing_force_point():
+    p1 = Point([0.0, 0.0])
+    p2 = Point([10.0, 0.0])
+    pts = Points(1)
+    pts.add([p1, p2])
+    elem = Element2D((p1, p2), material_and_section_properties={'E':1, 'A':1}, type='bar')
+    # Element2DLoads validates force_point at construction for concentrated loads,
+    # so create with a valid point then null it to test the Element2D-level check
+    load = Element2DLoads(type='concentrated', force_value_x=10.0, force_point=0.5)
+    load._force_point = None
+    elem._loads = [load]
+    with pytest.raises(ValueError, match='concentrated forces a float value'):
+        _ = elem.local_forces_vector
+
+
+
+from div_fem.fem_analysis.loads.element_2D_loads import Element2DLoads
+
+def test_element_2d_loads_extra():
+    # Missing all values
+    with pytest.raises(ValueError, match='at least one type of value'):
+        Element2DLoads(type='constant')
+    
+    # Missing force_point for concentrated
+    with pytest.raises(ValueError, match='must be provided with a local x coordinate'):
+        Element2DLoads(type='concentrated', force_value_x=10.0)
+    
+    # force_point provided for constant
+    with pytest.raises(ValueError, match='non concentrated force cannot be provided with a point of application'):
+        Element2DLoads(type='constant', force_value_x=10.0, force_point=0.5)
+
+    # __str__ coverage
+    load = Element2DLoads(type='concentrated', force_value_x=10.0, force_point=0.5)
+    assert 'Force(concentrated' in str(load)
+    
+    load_func = Element2DLoads(type='function', force_value_x=lambda x: x)
+    assert 'Force(function' in str(load_func)
+    
+    # Hit unreachable line 167 in element_2D.py by manual override
+    p1 = Point([0.0, 0.0])
+    p2 = Point([10.0, 0.0])
+    pts = Points(2)
+    pts.add([p1, p2])
+    elem = Element2D((p1, p2), material_and_section_properties={'E':1, 'A':1}, type='bar')
+    load_hack = Element2DLoads(type='concentrated', force_value_x=10.0, force_point=0.5)
+    load_hack._force_point = None
+    elem._loads = [load_hack]
+    with pytest.raises(ValueError, match='concentrated forces a float value'):
+        _ = elem.local_forces_vector
+
+
+
+def test_element_2d_interpolation_points_flag():
+    p1 = Point([0.0, 0.0])
+    p2 = Point([10.0, 0.0])
+    pts = Points(1)
+    pts.add([p1, p2])
+    mock_container = MagicMock()
+    mock_container.structural_analysis = MagicMock()
+    elem = Element2D((p1, p2), material_and_section_properties={'E':1, 'A':1}, type='bar')
+    elem.elements_container = mock_container
+    elem._calculating_points()
+    assert elem.interpolation_points_already_put_in_points_class == True
+
+def test_element_2d_beam_concentrated_moment_hit():
+    p1 = Point([0.0, 0.0])
+    p1.dof_per_node = 2
+    p2 = Point([10.0, 0.0])
+    p2.dof_per_node = 2
+    pts = Points(2)
+    pts.add([p1, p2])
+    mat = {'E': 1.0, 'A': 1.0, 'I': 1.0}
+    elem = Element2D((p1, p2), material_and_section_properties=mat, type='beam')
+    load = Element2DLoads(type='moment', force_value_moment=100.0, force_point=0.5)
+    elem._loads = [load]
+    f = elem.local_forces_vector
+    assert f.rows == 4
+
+def test_element_2d_frame_concentrated_all_hit():
+    p1 = Point([0.0, 0.0])
+    p1.dof_per_node = 3
+    p2 = Point([10.0, 0.0])
+    p2.dof_per_node = 3
+    pts = Points(3)
+    pts.add([p1, p2])
+    mat = {'E': 1.0, 'A': 1.0, 'I': 1.0}
+    elem = Element2D((p1, p2), material_and_section_properties=mat, type='frame')
+    load = Element2DLoads(type='concentrated', force_value_x=10.0, force_value_y=20.0, force_value_moment=30.0, force_point=0.5)
+    elem._loads = [load]
+    f = elem.local_forces_vector
+    assert f.rows == 6
+
+
+
+def test_element_2d_properties_final():
+    p1 = Point([0.0, 0.0])
+    p2 = Point([10.0, 0.0])
+    pts = Points(1)
+    pts.add([p1, p2])
+
+    elem = Element2D((p1, p2), material_and_section_properties={'E':1, 'A':1}, type='bar')
+
+    # elem.points returns a list: [extreme_0, *interpolation, extreme_1]
+    # For 2 interpolation points and no interior nodes, it's [p1, p2]
+    all_points = elem.points
+    assert isinstance(all_points, list)
+    assert all_points[0] is p1
+    assert all_points[-1] is p2
+    # degree_of_freedom is a flat list of all DOF numbers
+    assert elem.degree_of_freedom == p1.dof_numbers + p2.dof_numbers

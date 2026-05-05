@@ -59,6 +59,10 @@ def test_elements_add_and_retrieve():
     # Over limits
     with pytest.raises(IndexError, match="The element index is greater than the number of elements"):
         _ = elems[3]
+        
+    # Valid __getitem__
+    assert elems[0] == elem1
+    assert elems[1] == elem2
 
 def test_elements_adjacency_and_rcm():
     elems = Elements()
@@ -107,3 +111,75 @@ def test_elements_str_print(capsys):
     elems.print()
     captured = capsys.readouterr()
     assert "Element[  1]" in captured.out
+
+def test_elements_structural_analysis_descriptor():
+    from unittest.mock import MagicMock
+    elems = Elements()
+    pts = Points(2)
+    p1 = Point([0.0, 0.0])
+    p2 = Point([1.0, 0.0])
+    pts.add([p1, p2])
+    
+    mat = {"E": 1.0, "A": 1.0, "I": 1.0}
+    elem1 = Element2D((p1, p2), material_and_section_properties=mat)
+    elems.add(elem1)
+    
+    elem1.interpolation_points_already_put_in_points_class = False
+    
+    dummy_points_class = MagicMock()
+    
+    class DummySA:
+        @property
+        def points(self):
+            return dummy_points_class
+    
+    dummy_sa = DummySA()
+    
+    # Test __set__ descriptor
+    elems.structural_analysis = dummy_sa
+    
+    assert elem1.interpolation_points_already_put_in_points_class is True
+    dummy_points_class.assert_called_once()
+    
+    # Test exception block inside __set__
+    class ErrorSA:
+        @property
+        def points(self):
+            raise ValueError("Test Error")
+            
+    with pytest.raises(ValueError, match="Test Error"):
+        elems.structural_analysis = ErrorSA()
+
+def test_elements_string_for_element_info_coverage():
+    elems = Elements()
+    
+    class MockElement1:
+        index = 1
+        extreme_points = ["P1", "P2"]
+        interpolation_points = ["IP1", "IP2", "IP3"]
+        
+    class MockElement2:
+        index = 2
+        extreme_points = ["P1", "P2"]
+        @property
+        def interpolation_points(self):
+            raise AttributeError("No points")
+            
+    class MockElement3:
+        index = 3
+        extreme_points = ["P1", "P2"]
+        interpolation_points = ["IP1", "IP2"]
+        
+    elems._elements = [MockElement1(), MockElement2(), MockElement3()]
+    
+    str_repr = str(elems)
+    # MockElement1 string formatting (len > 2)
+    assert "'IP1',   ... ,  'IP3'" in str_repr
+    
+    # MockElement2 string formatting (exception block)
+    assert "Element[  2]" in str_repr
+    assert "'P1',  'P2'" in str_repr
+    
+    # MockElement3 string formatting (len <= 2)
+    assert "Element[  3]" in str_repr
+    assert "'IP1',  'IP2'" in str_repr
