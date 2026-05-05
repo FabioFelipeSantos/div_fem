@@ -35,14 +35,14 @@ class BoundariesConditions:
         """
         Calling the BoundariesConditions class with the boundaries as int value will return the Boundary Condition associated at that index. The indexation is based on 0 array index Python.
         """
-        pass
+        ...
 
     @overload
     def __call__(self, boundaries: BoundaryCondition | list[BoundaryCondition]) -> None:
         """
         Calling the BoundariesConditions class with the boundaries as BoundaryCondition instance or a list of BoundaryCondition instances, will add the conditions to the class.
         """
-        pass
+        ...
 
     def __call__(self, boundaries: int | BoundaryCondition | list[BoundaryCondition]) -> BoundaryCondition | None:
         if isinstance(boundaries, int):
