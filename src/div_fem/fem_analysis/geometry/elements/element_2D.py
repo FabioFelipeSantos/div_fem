@@ -226,9 +226,6 @@ class Element2D(
 
         return (length, c, s)
 
-    def _base_matrix_element(self) -> Matrix:
-        return Matrix(rows=self.total_degree_of_freedom)
-
     def _base_vector_element(self) -> Vector:
         return Vector(rows=self.total_degree_of_freedom)
 
@@ -361,9 +358,6 @@ class Element2D(
                     applied_force[2] = moment
 
                 force_vector = Vector(rows=self.total_degree_of_freedom)
-
-                if all([value == 0 for value in applied_force]):
-                    return force_vector
 
                 applied_force = self._base_rotation_matrix() * applied_force
 
@@ -544,51 +538,3 @@ class Element2D(
                     )
 
             return force_value_vector
-
-    def _verifying_dof_number(self, number_of_points: int, degrees_of_freedom: list[list[int]]) -> int:
-        if len(degrees_of_freedom) != number_of_points:
-            raise ValueError(
-                f"Provide just one information for degree of freedom for each node. Received {number_of_points} nodes and {len(degrees_of_freedom)} DOF info."
-            )
-
-        total_dof = 0
-        if self.type == "bar":
-            total = number_of_points * 1
-
-            for dof_item in degrees_of_freedom:
-                if len(dof_item) != 1:
-                    raise ValueError("To an element of type bar, each point must have just one degree of freedom.")
-                total_dof += 1
-
-            if total != total_dof:
-                raise ValueError(
-                    f"The total number of degree of freedom for the element must be {total} but received {total_dof}."
-                )
-
-            return total_dof
-        else:
-            if self.type == "beam":
-                total = number_of_points * 2
-
-                for index, dof in enumerate(degrees_of_freedom):
-                    if len(dof) != 2:
-                        raise ValueError(
-                            f"For a beam element, each node must have 2 degree of freedom. Received {len(dof)} for the node number {index + 1}"
-                        )
-                    total_dof += 2
-            else:
-                total = number_of_points * 3
-
-                for index, dof in enumerate(degrees_of_freedom):
-                    if len(dof) != 3:
-                        raise ValueError(
-                            f"For a beam element, each node must have 2 degree of freedom. Received {len(dof)} for the node number {index + 1}"
-                        )
-                    total_dof += 3
-
-            if total_dof != total:
-                raise ValueError(
-                    f"The total number of degree of freedom for the element must be {total} but received {total_dof}."
-                )
-
-            return total_dof
