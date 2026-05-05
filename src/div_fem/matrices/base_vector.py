@@ -24,18 +24,18 @@ class Vector:
         random: bool = False,
         unity_direction_vector_dim: int | None = None,
     ) -> None:
-        if not elements and not rows:
+        if elements is None and rows is None:
             raise ValueError(
                 "A Vector can be created passing your values or choosing a number of rows (elements). If you declare rows, a vector full of zeros will be created. You can create a vector with random ints, just passing the random keyword argument as True. If you want a vector representing a nth unit direction vector in direction n_i, pass unity_vector_dim with the index in that unit must be present (index starting at 0). Don't pass random=True with unity_vector_dim, this will raise a ValueError."
             )
 
-        if elements and rows:
+        if elements is not None and rows is not None:
             raise ValueError("Choose creating a vector with your values or your shape.")
 
         if random and unity_direction_vector_dim:
             raise ValueError("Choose one of the basic types of vector: random or unit direction vector.")
 
-        if elements:
+        if elements is not None:
             if isinstance(elements, Point):
                 self.rows = elements.dimension
                 self._data = elements.get_list()
@@ -46,7 +46,7 @@ class Vector:
             self._enumeration = enumerate(self._data)
             return
 
-        if rows:
+        if rows is not None:
             self.rows = rows
 
             if random:
