@@ -66,7 +66,7 @@ class ElementInterface(
         """
         Rotation matrix for the 2D element to transform from local to global coordinates.
         """
-        pass
+        ...
 
     @property
     @abstractmethod
